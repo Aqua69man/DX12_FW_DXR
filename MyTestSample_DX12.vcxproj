@@ -15,7 +15,7 @@
     <ProjectGuid>{63670E49-1270-41C0-98E9-E8092E27BC6D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>My0_dx12_CreateWidnow</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
     <ProjectName>DX12_FW</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DxrGame.cpp" />
     <ClCompile Include="External\HighResolutionClock.cpp" />
     <ClCompile Include="Framework\Application.cpp" />
     <ClCompile Include="Framework\CommandQueue.cpp" />
@@ -89,6 +90,7 @@
     <ClCompile Include="Game.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DxrGame.h" />
     <ClInclude Include="External\HighResolutionClock.h" />
     <ClInclude Include="Framework\Application.h" />
     <ClInclude Include="Framework\CommandQueue.h" />

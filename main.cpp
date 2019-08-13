@@ -1,4 +1,4 @@
-#include "Game.h"
+#include "DxrGame.h"
 
 
 std::wstring GetExePath() 
@@ -24,7 +24,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
-	Game game (hInstance, windowTitle, 3500, 1800, false);
+	DxrGame game (hInstance, windowTitle, 3500, 1800, false);
 	game.LoadContent(exePath);
 	game.Run();
 	game.UnloadContent();

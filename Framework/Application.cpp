@@ -318,7 +318,7 @@ ComPtr<IDXGIAdapter4> Application::GetAdapter(bool useWarp)
 			//		required for successful device creation.
 			if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
 				SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(),
-					D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
+					D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), nullptr)) &&
 				dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
 			{
 				maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
@@ -342,8 +342,13 @@ ComPtr<ID3D12Device2> Application::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 	// D3D_FEATURE_LEVEL  - MinimumFeatureLevel: The minimum D3D_FEATURE_LEVEL 
 	//		required for successful device creation.
 	ComPtr<ID3D12Device2> d3d12Device2;
-	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
+	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&d3d12Device2)));
 
+	// Check if the device supports ray tracing.
+	D3D12_FEATURE_DATA_D3D12_OPTIONS5 features = {};
+	HRESULT hr = d3d12Device2->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features, sizeof(features));
+	if (FAILED(hr) || features.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
+		throw std::exception();
 
 	// 1) Enable debug messages in debug mode.
 	// 2) ID3D12InfoQueue interface is used to enable break points based on the severity
