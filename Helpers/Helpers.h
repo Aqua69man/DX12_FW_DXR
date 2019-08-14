@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h> // For HRESULT
 #include <exception> // For std::exception
+#include <string>    // For msgBox
 
 // From DXSampleHelper.h 
 // Source: https://github.com/Microsoft/DirectX-Graphics-Samples
@@ -12,4 +13,10 @@ inline void ThrowIfFailed(HRESULT hr)
 	{
 		throw std::exception();
 	}
+}
+
+inline void msgBox(const std::string& msg)
+{
+	HWND gWinHandle = nullptr;
+	MessageBoxA(gWinHandle, msg.c_str(), "Error", MB_OK);
 }
