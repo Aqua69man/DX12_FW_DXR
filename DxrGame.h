@@ -22,7 +22,12 @@ public:
 	void UnloadContent();
 
 	// DXR
+	void InitDXR(std::wstring shaderBlobPath);
 	void createAccelerationStructures();
+	void createRtPipelineState();
+	void createShaderResources();
+	void createConstantBuffers();
+	void createShaderTable();
 
 protected:
 	// Create a GPU buffer.
