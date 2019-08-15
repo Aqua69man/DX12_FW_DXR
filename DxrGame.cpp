@@ -1,6 +1,11 @@
 #include "DxrGame.h"
 
+#include "External/DXCAPI/dxcapi.use.h"
 #include <d3dcompiler.h>
+#include <fstream>	// ifstream
+#include <sstream>  // stringstream
+
+static dxc::DxcDllSupport gDxcDllHelper;
 
 // =====================================================================================
 //										Global vars 
@@ -49,8 +54,20 @@ static WORD g_Indicies[36] =
 	4, 0, 3, 4, 3, 7
 };
 
+// Convert a blob to string
+template<class BlobType>
+std::string convertBlobToString(BlobType* pBlob)
+{
+	std::vector<char> infoLog(pBlob->GetBufferSize() + 1);
+	memcpy(infoLog.data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+	infoLog[pBlob->GetBufferSize()] = 0;
+	return std::string(infoLog.data());
+}
+
+#define arraysize(a) (sizeof(a)/sizeof(a[0]))
+
 // =====================================================================================
-//									Global Funcs
+//						  Build ACCELERATION_STRUCTURE Helper Funcs
 // =====================================================================================
 
 static const D3D12_HEAP_PROPERTIES kUploadHeapProps =
@@ -71,7 +88,8 @@ static const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
 	0
 };
 
-ComPtr<ID3D12Resource> createBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps)
+ComPtr<ID3D12Resource> DxrGame::CreateBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags, 
+	D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps)
 {
 	D3D12_RESOURCE_DESC bufDesc = {};
 	bufDesc.Alignment = 0;
@@ -91,7 +109,7 @@ ComPtr<ID3D12Resource> createBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size
 	return pBuffer;
 }
 
-ComPtr<ID3D12Resource> createTriangleVB(ComPtr<ID3D12Device5> pDevice)
+ComPtr<ID3D12Resource> DxrGame::CreateTriangleVB(ComPtr<ID3D12Device5> pDevice)
 {
 	const VertexPos vertices[] =
 	{
@@ -101,7 +119,7 @@ ComPtr<ID3D12Resource> createTriangleVB(ComPtr<ID3D12Device5> pDevice)
 	};
 
 	// For simplicity, we create the vertex buffer on the upload heap, but that's not required
-	ComPtr<ID3D12Resource> pBuffer = createBuffer(pDevice, sizeof(vertices), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+	ComPtr<ID3D12Resource> pBuffer = CreateBuffer(pDevice, sizeof(vertices), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
 	uint8_t* pData;
 	pBuffer->Map(0, nullptr, (void**)&pData);
 	memcpy(pData, vertices, sizeof(vertices));
@@ -109,7 +127,7 @@ ComPtr<ID3D12Resource> createTriangleVB(ComPtr<ID3D12Device5> pDevice)
 	return pBuffer;
 }
 
-ComPtr<ID3D12Resource> createPlaneVB(ComPtr<ID3D12Device5> pDevice)
+ComPtr<ID3D12Resource> DxrGame::CreatePlaneVB(ComPtr<ID3D12Device5> pDevice)
 {
 	const VertexPos vertices[] =
 	{
@@ -123,7 +141,7 @@ ComPtr<ID3D12Resource> createPlaneVB(ComPtr<ID3D12Device5> pDevice)
 	};
 
 	// For simplicity, we create the vertex buffer on the upload heap, but that's not required
-	ComPtr<ID3D12Resource> pBuffer = createBuffer(pDevice, sizeof(vertices), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+	ComPtr<ID3D12Resource> pBuffer = CreateBuffer(pDevice, sizeof(vertices), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
 	uint8_t* pData;
 	pBuffer->Map(0, nullptr, (void**)&pData);
 	memcpy(pData, vertices, sizeof(vertices));
@@ -131,6 +149,446 @@ ComPtr<ID3D12Resource> createPlaneVB(ComPtr<ID3D12Device5> pDevice)
 	return pBuffer;
 }
 
+DxrGame::AccelerationStructureBuffers DxrGame::CreateBottomLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList,
+	ComPtr<ID3D12Resource> pVB[], const uint32_t vertexCount[], uint32_t geometryCount)
+{
+	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDesc;
+	geomDesc.resize(geometryCount);
+
+	for (uint32_t i = 0; i < geometryCount; i++)
+	{
+		geomDesc[i].Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+		geomDesc[i].Triangles.VertexBuffer.StartAddress = pVB[i]->GetGPUVirtualAddress();
+		geomDesc[i].Triangles.VertexBuffer.StrideInBytes = sizeof(XMFLOAT3);
+		geomDesc[i].Triangles.VertexCount = vertexCount[i];
+		geomDesc[i].Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+		geomDesc[i].Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+	}
+
+	// Get the size requirements for the scratch and AS buffers
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
+	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+	inputs.NumDescs = geometryCount;
+	inputs.pGeometryDescs = geomDesc.data();
+	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info;
+	pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &info);
+
+	// Create the buffers. They need to support UAV, and since we are going to immediately use them, we create them with an unordered-access state
+	DxrGame::AccelerationStructureBuffers buffers;
+	buffers.pScratch = CreateBuffer(pDevice, info.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON, kDefaultHeapProps);
+	buffers.pResult = CreateBuffer(pDevice, info.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, kDefaultHeapProps);
+
+	// Create the bottom-level AS
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC asDesc = {};
+	asDesc.Inputs = inputs;
+	asDesc.DestAccelerationStructureData = buffers.pResult->GetGPUVirtualAddress();
+	asDesc.ScratchAccelerationStructureData = buffers.pScratch->GetGPUVirtualAddress();
+
+	pCmdList->BuildRaytracingAccelerationStructure(&asDesc, 0, nullptr);
+
+	// We need to insert a UAV barrier before using the acceleration structures in a raytracing operation
+	D3D12_RESOURCE_BARRIER uavBarrier = {};
+	uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	uavBarrier.UAV.pResource = buffers.pResult.Get();
+	pCmdList->ResourceBarrier(1, &uavBarrier);
+
+	return buffers;
+}
+
+void DxrGame::BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList, ComPtr<ID3D12Resource> pBottomLevelAS[2], 
+	uint64_t& tlasSize, float rotation, bool update, DxrGame::AccelerationStructureBuffers& buffers)
+{
+	// First, get the size of the TLAS buffers and create them
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
+	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;		// <---- if (update)
+	inputs.NumDescs = 3;
+	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info;
+	pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &info);
+
+	if (update)
+	{
+		// If this a request for an update, then the TLAS was already used in a DispatchRay() call. We need a UAV barrier to make sure the read operation ends before updating the buffer
+		D3D12_RESOURCE_BARRIER uavBarrier = {};
+		uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		uavBarrier.UAV.pResource = buffers.pResult.Get();
+		pCmdList->ResourceBarrier(1, &uavBarrier);
+	}
+	else
+	{
+		// If this is not an update operation then we need to create the buffers, otherwise we will refit in-place
+		buffers.pScratch = CreateBuffer(pDevice, info.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, kDefaultHeapProps);
+		buffers.pResult = CreateBuffer(pDevice, info.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, kDefaultHeapProps);
+		buffers.pInstanceDesc = CreateBuffer(pDevice, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * 3, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+		tlasSize = info.ResultDataMaxSizeInBytes;
+	}
+
+	// Map the instance desc buffer
+	{
+		// Map
+		D3D12_RAYTRACING_INSTANCE_DESC* instanceDescs;
+		buffers.pInstanceDesc->Map(0, nullptr, (void**)&instanceDescs);
+		{
+			ZeroMemory(instanceDescs, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * 3);
+
+			const XMVECTOR rotationAxisY = XMVectorSet(0, 1, 0, 0);
+			DirectX::XMMATRIX rotationMat = DirectX::XMMatrixRotationAxis(rotationAxisY, XMConvertToRadians(rotation));
+
+			// The transformation matrices for the instances
+			XMMATRIX transformation[3];
+			transformation[0] = DirectX::XMMatrixIdentity();
+			transformation[1] = DirectX::XMMatrixTranslation(-2, 0, 0) * rotationMat;
+			transformation[2] = DirectX::XMMatrixTranslation(2, 0, 0) * rotationMat;
+
+			// --------------------- TODO - CHECK ---------------------------
+			// ------------------ ROW MAJOR MATRIX 3x4 ----------------------
+			// --------------------- TODO - CHECK ---------------------------
+
+			// The InstanceContributionToHitGroupIndex is set based on the shader-table layout specified in createShaderTable()
+			// Create the desc for the triangle/plane instance
+			instanceDescs[0].InstanceID = 0;
+			instanceDescs[0].InstanceContributionToHitGroupIndex = 0;
+			instanceDescs[0].Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+			memcpy(instanceDescs[0].Transform, &transformation[0], sizeof(instanceDescs[0].Transform));
+			instanceDescs[0].AccelerationStructure = pBottomLevelAS[0]->GetGPUVirtualAddress();
+			instanceDescs[0].InstanceMask = 0xFF;
+
+			for (uint32_t i = 1; i < 3; i++)
+			{
+				instanceDescs[i].InstanceID = i; // This value will be exposed to the shader via InstanceID()
+				instanceDescs[i].InstanceContributionToHitGroupIndex = (i * 2) + 2;  // The indices are relative to to the start of the hit-table entries specified in Raytrace(), so we need 4 and 6
+				instanceDescs[i].Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+				XMMATRIX m = XMMatrixTranspose(transformation[i]); // GLM is column major, the INSTANCE_DESC is row major
+				memcpy(instanceDescs[i].Transform, &m, sizeof(instanceDescs[i].Transform));
+				instanceDescs[i].AccelerationStructure = pBottomLevelAS[1]->GetGPUVirtualAddress();
+				instanceDescs[i].InstanceMask = 0xFF; // Ray-Geometry intersections are processed when: (ray-mask__<fromShader_ArgOf_TraceRay> & InstanceMask__<fromTLAS> ) != 0
+
+			}
+		}
+		// Unmap
+		buffers.pInstanceDesc->Unmap(0, nullptr);
+	}
+
+	// Create the TLAS
+	{
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC asDesc = {};
+		asDesc.Inputs = inputs;
+		asDesc.Inputs.InstanceDescs = buffers.pInstanceDesc->GetGPUVirtualAddress();
+		asDesc.DestAccelerationStructureData = buffers.pResult->GetGPUVirtualAddress();
+		asDesc.ScratchAccelerationStructureData = buffers.pScratch->GetGPUVirtualAddress();
+
+		// If this is an update operation, set the source buffer and the perform_update flag
+		if (update)
+		{
+			asDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+			asDesc.SourceAccelerationStructureData = buffers.pResult->GetGPUVirtualAddress();
+		}
+
+		pCmdList->BuildRaytracingAccelerationStructure(&asDesc, 0, nullptr);
+	}
+
+	// We need to insert a UAV barrier before using the acceleration structures in a raytracing operation
+	{
+		D3D12_RESOURCE_BARRIER uavBarrier = {};
+		uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		uavBarrier.UAV.pResource = buffers.pResult.Get();
+		pCmdList->ResourceBarrier(1, &uavBarrier);
+	}
+}
+
+// =====================================================================================
+//								Create RT PipelineState 
+// =====================================================================================
+
+ComPtr<ID3DBlob> CompileLibrary(const WCHAR* filename, const WCHAR* targetString)
+{
+	// Initialize the helper
+	ThrowIfFailed(gDxcDllHelper.Initialize());
+	ComPtr<IDxcCompiler> pCompiler;
+	ComPtr<IDxcLibrary> pLibrary;
+	ThrowIfFailed(gDxcDllHelper.CreateInstance( CLSID_DxcCompiler, pCompiler.GetAddressOf() ));
+	ThrowIfFailed(gDxcDllHelper.CreateInstance( CLSID_DxcLibrary, pLibrary.GetAddressOf() ));
+
+	// Open and read the file
+	std::ifstream shaderFile(filename);
+	if (shaderFile.good() == false)
+	{
+		MsgBox("Can't open file " + wstring_2_string(std::wstring(filename)));
+		return nullptr;
+	}
+	std::stringstream strStream;
+	strStream << shaderFile.rdbuf();
+	std::string shader = strStream.str();
+
+	// Create blob from the string
+	ComPtr<IDxcBlobEncoding> pTextBlob;
+	ThrowIfFailed(pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)shader.c_str(), (uint32_t)shader.size(), 0, &pTextBlob));
+
+	// Compile
+	ComPtr<IDxcOperationResult> pResult;
+	ThrowIfFailed(pCompiler->Compile(pTextBlob.Get(), filename, L"", targetString, nullptr, 0, nullptr, 0, nullptr, &pResult));
+
+	// Verify the result
+	HRESULT resultCode;
+	ThrowIfFailed(pResult->GetStatus(&resultCode));
+	if (FAILED(resultCode))
+	{
+		ComPtr<IDxcBlobEncoding> pError;
+		ThrowIfFailed(pResult->GetErrorBuffer(&pError));
+		std::string log = convertBlobToString(pError.Get());
+		MsgBox("Compiler error:\n" + log);
+		return nullptr;
+	}
+
+	ComPtr<IDxcBlob> pBlob;
+	ThrowIfFailed(pResult->GetResult(pBlob.GetAddressOf()));
+
+	ComPtr<ID3DBlob> pD3dBlob = (ID3DBlob *) pBlob.Get();
+
+	return pD3dBlob;
+}
+
+ComPtr<ID3D12RootSignature> createRootSignature(ComPtr<ID3D12Device5> pDevice, const D3D12_ROOT_SIGNATURE_DESC& desc)
+{
+	ComPtr<ID3DBlob> pSigBlob;
+	ComPtr<ID3DBlob> pErrorBlob;
+	HRESULT hr = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &pSigBlob, &pErrorBlob);
+	if (FAILED(hr))
+	{
+		std::string msg = convertBlobToString(pErrorBlob.Get());
+		MsgBox(msg);
+		return nullptr;
+	}
+	ComPtr<ID3D12RootSignature> pRootSig;
+	ThrowIfFailed(pDevice->CreateRootSignature(0, pSigBlob->GetBufferPointer(), pSigBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSig)));
+	return pRootSig;
+}
+
+struct RootSignatureDesc
+{
+	D3D12_ROOT_SIGNATURE_DESC desc = {};
+	std::vector<D3D12_DESCRIPTOR_RANGE> range;
+	std::vector<D3D12_ROOT_PARAMETER> rootParams;
+};
+
+RootSignatureDesc createRayGenRootDesc()
+{
+	// Create the root-signature
+	RootSignatureDesc desc;
+	desc.range.resize(2);
+	// gOutput
+	desc.range[0].BaseShaderRegister = 0;
+	desc.range[0].NumDescriptors = 1;
+	desc.range[0].RegisterSpace = 0;
+	desc.range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	desc.range[0].OffsetInDescriptorsFromTableStart = 0;
+
+	// gRtScene
+	desc.range[1].BaseShaderRegister = 0;
+	desc.range[1].NumDescriptors = 1;
+	desc.range[1].RegisterSpace = 0;
+	desc.range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	desc.range[1].OffsetInDescriptorsFromTableStart = 1;
+
+	desc.rootParams.resize(1);
+	desc.rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	desc.rootParams[0].DescriptorTable.NumDescriptorRanges = 2;
+	desc.rootParams[0].DescriptorTable.pDescriptorRanges = desc.range.data();
+
+	// Create the desc
+	desc.desc.NumParameters = 1;
+	desc.desc.pParameters = desc.rootParams.data();
+	desc.desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+
+	return desc;
+}
+
+RootSignatureDesc createTriangleHitRootDesc()
+{
+	RootSignatureDesc desc;
+	desc.rootParams.resize(1);
+	desc.rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	desc.rootParams[0].Descriptor.RegisterSpace = 0;
+	desc.rootParams[0].Descriptor.ShaderRegister = 0;
+
+	desc.desc.NumParameters = 1;
+	desc.desc.pParameters = desc.rootParams.data();
+	desc.desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+
+	return desc;
+}
+
+RootSignatureDesc createPlaneHitRootDesc()
+{
+	RootSignatureDesc desc;
+	desc.range.resize(1);
+	desc.range[0].BaseShaderRegister = 0;
+	desc.range[0].NumDescriptors = 1;
+	desc.range[0].RegisterSpace = 0;
+	desc.range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	desc.range[0].OffsetInDescriptorsFromTableStart = 0;
+
+	desc.rootParams.resize(1);
+	desc.rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	desc.rootParams[0].DescriptorTable.NumDescriptorRanges = 1;
+	desc.rootParams[0].DescriptorTable.pDescriptorRanges = desc.range.data();
+
+	desc.desc.NumParameters = 1;
+	desc.desc.pParameters = desc.rootParams.data();
+	desc.desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+
+	return desc;
+}
+
+struct DxilLibrary
+{
+	DxilLibrary(ComPtr<ID3DBlob> pBlob, const WCHAR* entryPoint[], uint32_t entryPointCount) : pShaderBlob(pBlob)
+	{
+		stateSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+		stateSubobject.pDesc = &dxilLibDesc;
+
+		dxilLibDesc = {};
+		exportDesc.resize(entryPointCount);
+		exportName.resize(entryPointCount);
+		if (pBlob)
+		{
+			dxilLibDesc.DXILLibrary.pShaderBytecode = pBlob->GetBufferPointer();
+			dxilLibDesc.DXILLibrary.BytecodeLength = pBlob->GetBufferSize();
+			dxilLibDesc.NumExports = entryPointCount;
+			dxilLibDesc.pExports = exportDesc.data();
+
+			for (uint32_t i = 0; i < entryPointCount; i++)
+			{
+				exportName[i] = entryPoint[i];
+				exportDesc[i].Name = exportName[i].c_str();
+				exportDesc[i].Flags = D3D12_EXPORT_FLAG_NONE;
+				exportDesc[i].ExportToRename = nullptr;
+			}
+		}
+	};
+
+	DxilLibrary() : DxilLibrary(nullptr, nullptr, 0) {}
+
+	D3D12_DXIL_LIBRARY_DESC dxilLibDesc = {};
+	D3D12_STATE_SUBOBJECT stateSubobject{};
+	ComPtr<ID3DBlob> pShaderBlob;
+	std::vector<D3D12_EXPORT_DESC> exportDesc;
+	std::vector<std::wstring> exportName;
+};
+
+static const WCHAR* kRayGenShader = L"rayGen";
+static const WCHAR* kMissShader = L"miss";
+static const WCHAR* kTriangleChs = L"triangleChs";
+static const WCHAR* kPlaneChs = L"planeChs";
+static const WCHAR* kTriHitGroup = L"TriHitGroup";
+static const WCHAR* kPlaneHitGroup = L"PlaneHitGroup";
+static const WCHAR* kShadowChs = L"shadowChs";
+static const WCHAR* kShadowMiss = L"shadowMiss";
+static const WCHAR* kShadowHitGroup = L"ShadowHitGroup";
+
+DxilLibrary createDxilLibrary()
+{
+	// Compile the shader
+	ComPtr<ID3DBlob> pRayGenShader = CompileLibrary(L"Shaders/14-Shaders.hlsl", L"lib_6_3");
+	const WCHAR* entryPoints[] = { kRayGenShader, kMissShader, kPlaneChs, kTriangleChs, kShadowMiss, kShadowChs };
+	return DxilLibrary(pRayGenShader, entryPoints, arraysize(entryPoints));
+}
+
+struct HitProgram
+{
+	HitProgram(LPCWSTR ahsExport, LPCWSTR chsExport, const std::wstring& name) : exportName(name)
+	{
+		desc = {};
+		desc.AnyHitShaderImport = ahsExport;
+		desc.ClosestHitShaderImport = chsExport;
+		desc.HitGroupExport = exportName.c_str();
+
+		subObject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
+		subObject.pDesc = &desc;
+	}
+
+	std::wstring exportName;
+	D3D12_HIT_GROUP_DESC desc;
+	D3D12_STATE_SUBOBJECT subObject;
+};
+
+struct ExportAssociation
+{
+	ExportAssociation(const WCHAR* exportNames[], uint32_t exportCount, const D3D12_STATE_SUBOBJECT* pSubobjectToAssociate)
+	{
+		association.NumExports = exportCount;
+		association.pExports = exportNames;
+		association.pSubobjectToAssociate = pSubobjectToAssociate;
+
+		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
+		subobject.pDesc = &association;
+	}
+
+	D3D12_STATE_SUBOBJECT subobject = {};
+	D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION association = {};
+};
+
+struct LocalRootSignature
+{
+	LocalRootSignature(ComPtr<ID3D12Device5> pDevice, const D3D12_ROOT_SIGNATURE_DESC& desc)
+	{
+		pRootSig = createRootSignature(pDevice, desc);
+		pInterface = pRootSig.Get();
+		subobject.pDesc = &pInterface;
+		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
+	}
+	ComPtr<ID3D12RootSignature> pRootSig;
+	ID3D12RootSignature* pInterface = nullptr;
+	D3D12_STATE_SUBOBJECT subobject = {};
+};
+
+struct GlobalRootSignature
+{
+	GlobalRootSignature(ComPtr<ID3D12Device5> pDevice, const D3D12_ROOT_SIGNATURE_DESC& desc)
+	{
+		pRootSig = createRootSignature(pDevice, desc);
+		pInterface = pRootSig.Get();
+		subobject.pDesc = &pInterface;
+		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
+	}
+	ComPtr<ID3D12RootSignature> pRootSig;
+	ID3D12RootSignature* pInterface = nullptr;
+	D3D12_STATE_SUBOBJECT subobject = {};
+};
+
+struct ShaderConfig
+{
+	ShaderConfig(uint32_t maxAttributeSizeInBytes, uint32_t maxPayloadSizeInBytes)
+	{
+		shaderConfig.MaxAttributeSizeInBytes = maxAttributeSizeInBytes;
+		shaderConfig.MaxPayloadSizeInBytes = maxPayloadSizeInBytes;
+
+		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
+		subobject.pDesc = &shaderConfig;
+	}
+
+	D3D12_RAYTRACING_SHADER_CONFIG shaderConfig = {};
+	D3D12_STATE_SUBOBJECT subobject = {};
+};
+
+struct PipelineConfig
+{
+	PipelineConfig(uint32_t maxTraceRecursionDepth)
+	{
+		config.MaxTraceRecursionDepth = maxTraceRecursionDepth;
+
+		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
+		subobject.pDesc = &config;
+	}
+
+	D3D12_RAYTRACING_PIPELINE_CONFIG config = {};
+	D3D12_STATE_SUBOBJECT subobject = {};
+};
 
 // =====================================================================================
 //										Init 
@@ -156,7 +614,7 @@ DxrGame::~DxrGame()
 
 
 
-void DxrGame::InitDXR(std::wstring shaderBlobPath)
+void DxrGame::InitDXR()
 {
 	createAccelerationStructures();         
 	createRtPipelineState();                
@@ -167,28 +625,33 @@ void DxrGame::InitDXR(std::wstring shaderBlobPath)
 
 void DxrGame::createAccelerationStructures()
 {
-	mpVertexBuffer[0] = createTriangleVB(Application::GetDevice());
-	mpVertexBuffer[1] = createPlaneVB(mpDevice);
+	ComPtr<ID3D12Device5> device = Application::GetDevice();
+	std::shared_ptr<CommandQueue> cmdQueue = Application::GetCommandQueue();
+	ComPtr<ID3D12GraphicsCommandList4> cmdList = cmdQueue->GetCommandList();
+
+	mpVertexBuffer[0] = CreateTriangleVB(device);
+	mpVertexBuffer[1] = CreatePlaneVB(device);
 	AccelerationStructureBuffers bottomLevelBuffers[2];
 
 	// The first bottom-level buffer is for the plane and the triangle
 	const uint32_t vertexCount[] = { 3, 6 };// Triangle has 3 vertices, plane has 6
-	bottomLevelBuffers[0] = createBottomLevelAS(mpDevice, mpCmdList, mpVertexBuffer, vertexCount, 2);
+	bottomLevelBuffers[0] = CreateBottomLevelAS(device, cmdList, mpVertexBuffer, vertexCount, 2);
 	mpBottomLevelAS[0] = bottomLevelBuffers[0].pResult;
 
 	// The second bottom-level buffer is for the triangle only
-	bottomLevelBuffers[1] = createBottomLevelAS(mpDevice, mpCmdList, mpVertexBuffer, vertexCount, 1);
+	bottomLevelBuffers[1] = CreateBottomLevelAS(device, cmdList, mpVertexBuffer, vertexCount, 1);
 	mpBottomLevelAS[1] = bottomLevelBuffers[1].pResult;
 
 	// Create the TLAS
-	buildTopLevelAS(mpDevice, mpCmdList, mpBottomLevelAS, mTlasSize, 0, false, mTopLevelBuffers);
+	BuildTopLevelAS(device, cmdList, mpBottomLevelAS, mTlasSize, 0, false, mTopLevelBuffers);
 
 	// The tutorial doesn't have any resource lifetime management, so we flush and sync here. This is not required by the DXR spec - you can submit the list whenever you like as long as you take care of the resources lifetime.
-	mFenceValue = submitCommandList(mpCmdList, mpCmdQueue, mpFence, mFenceValue);
-	mpFence->SetEventOnCompletion(mFenceValue, mFenceEvent);
-	WaitForSingleObject(mFenceEvent, INFINITE);
-	uint32_t bufferIndex = mpSwapChain->GetCurrentBackBufferIndex();
-	mpCmdList->Reset(mFrameObjects[0].pCmdAllocator, nullptr);
+	//mFenceValue = submitCommandList(mpCmdList, mpCmdQueue, mpFence, mFenceValue);
+	//mpFence->SetEventOnCompletion(mFenceValue, mFenceEvent);
+	//WaitForSingleObject(mFenceEvent, INFINITE);
+	//mpCmdList->Reset(mFrameObjects[0].pCmdAllocator, nullptr);
+	m_FenceValues[m_CurrentBackBufferIndex] = cmdQueue->ExecuteCommandList(cmdList);
+	cmdQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
 }
 
 void DxrGame::createRtPipelineState() 
@@ -215,7 +678,7 @@ void DxrGame::createShaderTable()
 //						      LoadContent & UnloadContent
 // =====================================================================================
 void DxrGame::UpdateBufferResource(
-	ComPtr<ID3D12GraphicsCommandList2> commandList,
+	ComPtr<ID3D12GraphicsCommandList4> commandList,
 	ID3D12Resource** pDestinationResource,
 	ID3D12Resource** pIntermediateResource,
 	size_t numElements, size_t elementSize, const void* bufferData,
@@ -563,7 +1026,7 @@ void DxrGame::ResizeDepthBuffer(int width, int height)
 //									Helper Funcs
 // =====================================================================================
 
-void DxrGame::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ComPtr<ID3D12Resource> resource,
+void DxrGame::TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource,
 	D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition
@@ -574,13 +1037,13 @@ void DxrGame::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList,
 	commandList->ResourceBarrier(1, &barrier);
 }
 
-void DxrGame::ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+void DxrGame::ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor)
 {
 	commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
 }
 
-void DxrGame::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+void DxrGame::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
 {
 	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);

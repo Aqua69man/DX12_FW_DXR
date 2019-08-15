@@ -6,9 +6,20 @@
 
 class DxrGame : public Application
 {
-	// ------------------------------------------------------------------------------------------
-	//									Function members
-	// ------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------
+//										Structs
+// ------------------------------------------------------------------------------------------
+public:
+	struct AccelerationStructureBuffers
+	{
+		ComPtr<ID3D12Resource> pScratch;
+		ComPtr<ID3D12Resource> pResult;
+		ComPtr<ID3D12Resource> pInstanceDesc;    // Used only for top-level AS
+	};
+
+// ------------------------------------------------------------------------------------------
+//									Function members
+// ------------------------------------------------------------------------------------------
 public:
 	DxrGame(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync);
 	virtual ~DxrGame();
@@ -22,16 +33,32 @@ public:
 	void UnloadContent();
 
 	// DXR
-	void InitDXR(std::wstring shaderBlobPath);
+	void InitDXR();
 	void createAccelerationStructures();
 	void createRtPipelineState();
 	void createShaderResources();
 	void createConstantBuffers();
 	void createShaderTable();
 
-protected:
+
+protected:			
+	/* --- DXR Helper Funcs --- */
+	
+	ComPtr<ID3D12Resource> CreateBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags,
+		D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps);
+	ComPtr<ID3D12Resource> CreateTriangleVB(ComPtr<ID3D12Device5> pDevice);
+	ComPtr<ID3D12Resource> CreatePlaneVB(ComPtr<ID3D12Device5> pDevice);
+
+	AccelerationStructureBuffers CreateBottomLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList,
+			ComPtr<ID3D12Resource> pVB[], const uint32_t vertexCount[], uint32_t geometryCount);
+	void BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList, ComPtr<ID3D12Resource> pBottomLevelAS[2],
+		uint64_t& tlasSize, float rotation, bool update, DxrGame::AccelerationStructureBuffers& buffers);
+
+protected:			
+	/* --- Samle Funcs --- */
+	
 	// Create a GPU buffer.
-	void UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList2> commandList,
+	void UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList4> commandList,
 		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
 		size_t numElements, size_t elementSize, const void* bufferData,
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
@@ -39,24 +66,18 @@ protected:
 	void ResizeDepthBuffer(int width, int height);
 
 	// Helpers
-	void TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ComPtr<ID3D12Resource> resource,
+	void TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource,
 		D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
-	void ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+	void ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor);
-	void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+	void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth = 1.0f);
 
-	// ------------------------------------------------------------------------------------------
-	//									Data members
-	// ------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------
+//										Data members
+// ------------------------------------------------------------------------------------------
 private:
 	// createAccelerationStructures 
-	struct AccelerationStructureBuffers
-	{
-		ComPtr<ID3D12Resource> pScratch;
-		ComPtr<ID3D12Resource> pResult;
-		ComPtr<ID3D12Resource> pInstanceDesc;    // Used only for top-level AS
-	};
 	ComPtr <ID3D12Resource> mpVertexBuffer[2];
 	ComPtr <ID3D12Resource> mpBottomLevelAS[2];
 	AccelerationStructureBuffers mTopLevelBuffers;

@@ -40,6 +40,9 @@
       <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="DxrGame.h" />
+    <ClInclude Include="External\DXCAPI\dxcapi.use.h">
+      <Filter>External\DXC</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Framework">
@@ -60,12 +63,18 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{ddc3ca7a-6d5c-4dcc-9710-2bc87050094c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External\DXC">
+      <UniqueIdentifier>{75395194-6604-44c3-9201-22ad1e34acc4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\VertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\14-Shaders.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
