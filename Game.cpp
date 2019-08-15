@@ -66,7 +66,7 @@ Game::~Game()
 // =====================================================================================
 
 void Game::UpdateBufferResource(
-	ComPtr<ID3D12GraphicsCommandList2> commandList,
+	ComPtr<ID3D12GraphicsCommandList4> commandList,
 	ID3D12Resource** pDestinationResource,
 	ID3D12Resource** pIntermediateResource,
 	size_t numElements, size_t elementSize, const void* bufferData,
@@ -414,7 +414,7 @@ void Game::ResizeDepthBuffer(int width, int height)
 //									Helper Funcs
 // =====================================================================================
 
-void Game::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ComPtr<ID3D12Resource> resource, 
+void Game::TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource, 
 	D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition
@@ -425,13 +425,13 @@ void Game::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, Co
 	commandList->ResourceBarrier(1, &barrier);
 }
 
-void Game::ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+void Game::ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor)
 {
 	commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
 }
 
-void Game::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+void Game::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
 {
 	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);

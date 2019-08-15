@@ -5,7 +5,7 @@
 
 
 
-CommandQueue::CommandQueue(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type) 
+CommandQueue::CommandQueue(ComPtr<ID3D12Device5> device, D3D12_COMMAND_LIST_TYPE type) 
 	: m_d3d12Device(device)
 	, m_CommandListType(type)
 	, m_FenceValue(0)
@@ -70,9 +70,9 @@ ComPtr<ID3D12CommandAllocator> CommandQueue::CreateCommandAllocator()
 }
 
 
-ComPtr<ID3D12GraphicsCommandList2> CommandQueue::CreateCommandList(ComPtr<ID3D12CommandAllocator> allocator)
+ComPtr<ID3D12GraphicsCommandList4> CommandQueue::CreateCommandList(ComPtr<ID3D12CommandAllocator> allocator)
 {
-	ComPtr<ID3D12GraphicsCommandList2> commandList;
+	ComPtr<ID3D12GraphicsCommandList4> commandList;
 	ThrowIfFailed(
 		m_d3d12Device->CreateCommandList(0, m_CommandListType, allocator.Get(), nullptr, IID_PPV_ARGS(&commandList))
 	);
@@ -87,10 +87,10 @@ ComPtr<ID3D12GraphicsCommandList2> CommandQueue::CreateCommandList(ComPtr<ID3D12
 //		class needs a way to keep track of which command allocator is associated with which command list. Since there
 //		is no way to directly query the command allocator that was used to reset the command list, a pointer 
 //		to the command allocator is stored in the private data space of the command list.
-ComPtr<ID3D12GraphicsCommandList2> CommandQueue::GetCommandList()
+ComPtr<ID3D12GraphicsCommandList4> CommandQueue::GetCommandList()
 {
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
-	ComPtr<ID3D12GraphicsCommandList2> commandList;
+	ComPtr<ID3D12GraphicsCommandList4> commandList;
 
 	// Before the command list can be reset, an unused command allocator is required 
 	//		as CommandList->Reset requires CommandAllocator as a parameter.
@@ -139,7 +139,7 @@ ComPtr<ID3D12GraphicsCommandList2> CommandQueue::GetCommandList()
 }
 
 
-UINT64 CommandQueue::ExecuteCommandList(ComPtr<ID3D12GraphicsCommandList2> commandList)
+UINT64 CommandQueue::ExecuteCommandList(ComPtr<ID3D12GraphicsCommandList4> commandList)
 {
 	commandList->Close();
 

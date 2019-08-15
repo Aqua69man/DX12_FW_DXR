@@ -23,7 +23,7 @@ public:
 
 protected:
 	// Create a GPU buffer.
-	void UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList2> commandList,
+	void UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList4> commandList,
 		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
 		size_t numElements, size_t elementSize, const void* bufferData,
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
@@ -31,11 +31,11 @@ protected:
 	void ResizeDepthBuffer(int width, int height);
 
 	// Helpers
-	void TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ComPtr<ID3D12Resource> resource, 
+	void TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource,
 		D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
-	void ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+	void ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor);
-	void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+	void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth = 1.0f);
 
 // ------------------------------------------------------------------------------------------
