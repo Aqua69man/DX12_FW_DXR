@@ -56,14 +56,14 @@ protected:
 	// Helpers
 	void EnableDebugLayer();
 	ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp);
-	ComPtr<ID3D12Device2> CreateDevice(ComPtr<IDXGIAdapter4> adapter);
-	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors);
-	void UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
+	ComPtr<ID3D12Device5> CreateDevice(ComPtr<IDXGIAdapter4> adapter);
+	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device5> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors);
+	void UpdateRenderTargetViews(ComPtr<ID3D12Device5> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 
 	// Get and Set
 	UINT32 GetClientWidth() const { return m_Window->GetClientWidth(); }
 	UINT32 GetClientHeight() const { return m_Window->GetClientHeight(); }
-	ComPtr<ID3D12Device2> GetDevice() const { return m_d3d12Device; }
+	ComPtr<ID3D12Device5> GetDevice() const { return m_d3d12Device; }
 	std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
 	UINT GetCurrentBackbufferIndex() const { return m_Window->GetCurrentBackBufferIndex(); }
 	ComPtr<ID3D12Resource> GetBackbuffer(UINT BackBufferIndex);
@@ -86,7 +86,7 @@ private:
 	HINSTANCE m_hInstance;
 
 	// DirectX 12 Objects
-	ComPtr<ID3D12Device2> m_d3d12Device;
+	ComPtr<ID3D12Device5> m_d3d12Device;
 
 	// Command Queues
 	std::shared_ptr<CommandQueue> m_DirectCommandQueue = nullptr;
