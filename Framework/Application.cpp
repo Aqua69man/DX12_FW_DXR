@@ -403,13 +403,14 @@ ComPtr<ID3D12Device5> Application::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 // CBV, SRV, and UAV can be stored in the same heap but
 // RTV and Sampler views EACH require separate descriptor heaps.
 ComPtr<ID3D12DescriptorHeap> Application::CreateDescriptorHeap(ComPtr<ID3D12Device5> device,
-	D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors)
+	D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors, bool shaderVisible)
 {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.NumDescriptors = numDescriptors;
 	desc.Type = type;
+	desc.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
 

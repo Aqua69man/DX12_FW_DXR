@@ -57,7 +57,7 @@ protected:
 	void EnableDebugLayer();
 	ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp);
 	ComPtr<ID3D12Device5> CreateDevice(ComPtr<IDXGIAdapter4> adapter);
-	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device5> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors);
+	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device5> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT32 numDescriptors, bool shaderVisible = false);
 	void UpdateRenderTargetViews(ComPtr<ID3D12Device5> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 
 	// Get and Set
