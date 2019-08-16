@@ -66,6 +66,7 @@ std::string convertBlobToString(BlobType* pBlob)
 }
 
 #define arraysize(a) (sizeof(a)/sizeof(a[0]))
+#define align_to(_alignment, _val) (((_val + _alignment - 1) / _alignment) * _alignment)
 
 // =====================================================================================
 //										Init 
@@ -631,7 +632,7 @@ void DxrGame::InitDXR()
 	createRtPipelineState();                
 	createShaderResources();                
 	createConstantBuffers();                
-	createShaderTable();                    
+	createShaderTable();     
 }
 
 void DxrGame::createAccelerationStructures()
@@ -764,6 +765,9 @@ void DxrGame::createShaderResources()
 {
 	ComPtr<ID3D12Device5> device = Application::GetDevice();
 
+	// Create an SRV/UAV descriptor heap. Need 2 entries - 1 SRV for the scene and 1 UAV for the output
+	m_SrvUavHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2, true);
+
 	// Create the output resource. The dimensions and format should match the SWAP-CHAIN
 	D3D12_RESOURCE_DESC resDesc = {};
 	resDesc.DepthOrArraySize = 1;
@@ -776,9 +780,6 @@ void DxrGame::createShaderResources()
 	resDesc.MipLevels = 1;
 	resDesc.SampleDesc.Count = 1;
 	ThrowIfFailed(device->CreateCommittedResource(&kDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr, IID_PPV_ARGS(&m_OutputResource))); // Starting as copy-source to simplify onFrameRender()
-
-	// Create an SRV/UAV descriptor heap. Need 2 entries - 1 SRV for the scene and 1 UAV for the output
-	m_SrvUavHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2, true);
 
 	// Create the UAV. Based on the root signature we created it should be the first entry
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -824,13 +825,95 @@ void DxrGame::createConstantBuffers()
 		uint8_t* pData;
 		ThrowIfFailed(m_ConstantBuffer[i]->Map(0, nullptr, (void**)&pData));
 		memcpy(pData, &bufferData[i * 3], sizeof(bufferData));
-		mpConstantBuffer[i]->Unmap(0, nullptr);
+		m_ConstantBuffer[i]->Unmap(0, nullptr);
 	}
 }
 
 void DxrGame::createShaderTable()
 {
+	ComPtr<ID3D12Device5> device = Application::GetDevice();
 
+    /** The shader-table layout is as follows:
+        Entry 0 - Ray-gen program
+        Entry 1 - Miss program for the primary ray
+        Entry 2 - Miss program for the shadow ray
+        Entries 3,4 - Hit programs for triangle 0 (primary followed by shadow)
+        Entries 5,6 - Hit programs for the plane (primary followed by shadow)
+        Entries 7,8 - Hit programs for triangle 1 (primary followed by shadow)
+        Entries 9,10 - Hit programs for triangle 2 (primary followed by shadow)
+        All entries in the shader-table must have the same size, so we will choose it base on the largest required entry.
+        The triangle primary-ray hit program requires the largest entry - sizeof(program identifier) + 8 bytes for the constant-buffer root descriptor.
+        The entry size must be aligned up to D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT
+    */
+
+    // Calculate the size and create the buffer
+    c_ShaderTableEntrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    c_ShaderTableEntrySize += 8; // The hit shader constant-buffer descriptor
+    c_ShaderTableEntrySize = align_to(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT, c_ShaderTableEntrySize);
+    uint32_t shaderTableSize = c_ShaderTableEntrySize * 11;
+
+    // For simplicity, we create the shader-table on the upload heap. You can also create it on the default heap
+    m_ShaderTable = CreateBuffer(device, shaderTableSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+
+    // Map the buffer
+    uint8_t* pData;
+    ThrowIfFailed(m_ShaderTable->Map(0, nullptr, (void**)&pData));
+
+    ComPtr<ID3D12StateObjectProperties> pRtsoProps;
+    m_PipelineStateRtx->QueryInterface(IID_PPV_ARGS(pRtsoProps.GetAddressOf()));
+
+    // Entry 0 - ray-gen program ID and descriptor data
+    memcpy(pData, pRtsoProps->GetShaderIdentifier(kRayGenShader), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    uint64_t heapStart = m_SrvUavHeap->GetGPUDescriptorHandleForHeapStart().ptr;
+    *(uint64_t*)(pData + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = heapStart;
+
+    // Entry 1 - primary ray miss
+    memcpy(pData + c_ShaderTableEntrySize, pRtsoProps->GetShaderIdentifier(kMissShader), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    // Entry 2 - shadow-ray miss
+    memcpy(pData + c_ShaderTableEntrySize * 2, pRtsoProps->GetShaderIdentifier(kShadowMiss), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    // Entry 3 - Triangle 0, primary ray. ProgramID and constant-buffer data
+    uint8_t* pEntry3 = pData + c_ShaderTableEntrySize * 3;
+    memcpy(pEntry3, pRtsoProps->GetShaderIdentifier(kTriHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    assert(((uint64_t)(pEntry3 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) % 8) == 0); // Root descriptor must be stored at an 8-byte aligned address
+    *(D3D12_GPU_VIRTUAL_ADDRESS*)(pEntry3 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = m_ConstantBuffer[0]->GetGPUVirtualAddress();
+
+    // Entry 4 - Triangle 0, shadow ray. ProgramID only
+    uint8_t* pEntry4 = pData + c_ShaderTableEntrySize * 4;
+    memcpy(pEntry4, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    // Entry 5 - Plane, primary ray. ProgramID only and the TLAS SRV
+    uint8_t* pEntry5 = pData + c_ShaderTableEntrySize * 5;
+    memcpy(pEntry5, pRtsoProps->GetShaderIdentifier(kPlaneHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    *(uint64_t*)(pEntry5 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = heapStart + device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); // The SRV comes directly after the program id
+
+    // Entry 6 - Plane, shadow ray
+    uint8_t* pEntry6 = pData + c_ShaderTableEntrySize * 6;
+    memcpy(pEntry6, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    // Entry 7 - Triangle 1, primary ray. ProgramID and constant-buffer data
+    uint8_t* pEntry7 = pData + c_ShaderTableEntrySize * 7;
+    memcpy(pEntry7, pRtsoProps->GetShaderIdentifier(kTriHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    assert(((uint64_t)(pEntry7 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) % 8) == 0); // Root descriptor must be stored at an 8-byte aligned address
+    *(D3D12_GPU_VIRTUAL_ADDRESS*)(pEntry7 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = m_ConstantBuffer[1]->GetGPUVirtualAddress();
+
+    // Entry 8 - Triangle 1, shadow ray. ProgramID only
+    uint8_t* pEntry8 = pData + c_ShaderTableEntrySize * 8;
+    memcpy(pEntry8, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    // Entry 9 - Triangle 2, primary ray. ProgramID and constant-buffer data
+    uint8_t* pEntry9 = pData + c_ShaderTableEntrySize * 9;
+    memcpy(pEntry9, pRtsoProps->GetShaderIdentifier(kTriHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    assert(((uint64_t)(pEntry9 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) % 8) == 0); // Root descriptor must be stored at an 8-byte aligned address
+    *(D3D12_GPU_VIRTUAL_ADDRESS*)(pEntry9 + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = m_ConstantBuffer[2]->GetGPUVirtualAddress();
+
+    // Entry 10 - Triangle 2, shadow ray. ProgramID only
+    uint8_t* pEntry10 = pData + c_ShaderTableEntrySize * 10;
+    memcpy(pEntry10, pRtsoProps->GetShaderIdentifier(kShadowHitGroup), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    // Unmap
+    m_ShaderTable->Unmap(0, nullptr);
 }
 
 // =====================================================================================
@@ -988,7 +1071,7 @@ bool DxrGame::LoadContent(std::wstring shaderBlobPath)
 	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
 		sizeof(PipelineStateStream), &pipelineStateStream
 	};
-	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
+	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineStateMain)));
 
 	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
@@ -1082,7 +1165,7 @@ void DxrGame::Render()
 	}
 
 	// Set Graphics state
-	commandList->SetPipelineState(m_PipelineState.Get());
+	commandList->SetPipelineState(m_PipelineStateMain.Get());
 	commandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

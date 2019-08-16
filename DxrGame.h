@@ -81,6 +81,10 @@ private:
 	// createConstantBuffers()
 	ComPtr<ID3D12Resource> m_ConstantBuffer[3];
 
+	// createShaderTable()
+	ComPtr<ID3D12Resource> m_ShaderTable;
+	uint32_t c_ShaderTableEntrySize = 0;
+
 private:
 	bool m_ContentLoaded;
 
@@ -100,7 +104,7 @@ private:
 	ComPtr<ID3D12RootSignature> m_RootSignature;
 
 	// Pipeline state object.
-	ComPtr<ID3D12PipelineState> m_PipelineState;
+	ComPtr<ID3D12PipelineState> m_PipelineStateMain;
 private:
 	// View Settings
 	D3D12_VIEWPORT m_Viewport;
