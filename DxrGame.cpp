@@ -4,6 +4,7 @@
 #include <d3dcompiler.h>
 #include <fstream>	// ifstream
 #include <sstream>  // stringstream
+#include <array>    // stringstream
 
 static dxc::DxcDllSupport gDxcDllHelper;
 
@@ -67,11 +68,35 @@ std::string convertBlobToString(BlobType* pBlob)
 #define arraysize(a) (sizeof(a)/sizeof(a[0]))
 
 // =====================================================================================
+//										Init 
+// =====================================================================================
+
+DxrGame::DxrGame(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync) :
+	Application(hInstance, windowTitle, width, height, vSync),
+	m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX)),
+	m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)width, (float)height)),
+	m_FoV(45.0f)
+{
+	// The first back buffer index will very likely be 0, but it depends
+	m_CurrentBackBufferIndex = Application::GetCurrentBackbufferIndex();
+}
+DxrGame::~DxrGame()
+{
+
+}
+
+// =====================================================================================
 //						  Build ACCELERATION_STRUCTURE Helper Funcs
 // =====================================================================================
 
 static const D3D12_HEAP_PROPERTIES kUploadHeapProps =
 {
+	// D3D12_HEAP_TYPE_UPLOAD:
+	//  - Used for uploading. 
+	//  - CPU - optimized for uploading to GPU, but does not experience 
+	//			the maximum amount of bandwidth for the GPU. 
+	//  - This heap type is best for CPU-write-once, GPU-read-once data; 
+	//	  but GPU-read-once is stricter than necessary. 
 	D3D12_HEAP_TYPE_UPLOAD,
 	D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
 	D3D12_MEMORY_POOL_UNKNOWN,
@@ -81,6 +106,11 @@ static const D3D12_HEAP_PROPERTIES kUploadHeapProps =
 
 static const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
 {
+	// D3D12_HEAP_TYPE_DEFAULT:
+	//	- CPU - cannot access,
+	//  - GPU - read / write,
+	//  - Rsource transition barriers 
+	//	  may be changed
 	D3D12_HEAP_TYPE_DEFAULT,
 	D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
 	D3D12_MEMORY_POOL_UNKNOWN,
@@ -88,7 +118,7 @@ static const D3D12_HEAP_PROPERTIES kDefaultHeapProps =
 	0
 };
 
-ComPtr<ID3D12Resource> DxrGame::CreateBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags, 
+ComPtr<ID3D12Resource> CreateBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags, 
 	D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps)
 {
 	D3D12_RESOURCE_DESC bufDesc = {};
@@ -109,7 +139,7 @@ ComPtr<ID3D12Resource> DxrGame::CreateBuffer(ComPtr<ID3D12Device5> pDevice, uint
 	return pBuffer;
 }
 
-ComPtr<ID3D12Resource> DxrGame::CreateTriangleVB(ComPtr<ID3D12Device5> pDevice)
+ComPtr<ID3D12Resource> CreateTriangleVB(ComPtr<ID3D12Device5> pDevice)
 {
 	const VertexPos vertices[] =
 	{
@@ -127,7 +157,7 @@ ComPtr<ID3D12Resource> DxrGame::CreateTriangleVB(ComPtr<ID3D12Device5> pDevice)
 	return pBuffer;
 }
 
-ComPtr<ID3D12Resource> DxrGame::CreatePlaneVB(ComPtr<ID3D12Device5> pDevice)
+ComPtr<ID3D12Resource> CreatePlaneVB(ComPtr<ID3D12Device5> pDevice)
 {
 	const VertexPos vertices[] =
 	{
@@ -149,7 +179,7 @@ ComPtr<ID3D12Resource> DxrGame::CreatePlaneVB(ComPtr<ID3D12Device5> pDevice)
 	return pBuffer;
 }
 
-DxrGame::AccelerationStructureBuffers DxrGame::CreateBottomLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList,
+DxrGame::AccelerationStructureBuffers CreateBottomLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList,
 	ComPtr<ID3D12Resource> pVB[], const uint32_t vertexCount[], uint32_t geometryCount)
 {
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDesc;
@@ -198,7 +228,7 @@ DxrGame::AccelerationStructureBuffers DxrGame::CreateBottomLevelAS(ComPtr<ID3D12
 	return buffers;
 }
 
-void DxrGame::BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList, ComPtr<ID3D12Resource> pBottomLevelAS[2], 
+void BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList, ComPtr<ID3D12Resource> pBottomLevelAS[2], 
 	uint64_t& tlasSize, float rotation, bool update, DxrGame::AccelerationStructureBuffers& buffers)
 {
 	// First, get the size of the TLAS buffers and create them
@@ -591,27 +621,8 @@ struct PipelineConfig
 };
 
 // =====================================================================================
-//										Init 
-// =====================================================================================
-
-DxrGame::DxrGame(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync) :
-	Application(hInstance, windowTitle, width, height, vSync),
-	m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX)),
-	m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)width, (float)height)),
-	m_FoV(45.0f)
-{
-	// The first back buffer index will very likely be 0, but it depends
-	m_CurrentBackBufferIndex = Application::GetCurrentBackbufferIndex();
-}
-DxrGame::~DxrGame()
-{
-
-}
-
-// =====================================================================================
 //										DXR-main
 // =====================================================================================
-
 
 
 void DxrGame::InitDXR()
@@ -629,21 +640,21 @@ void DxrGame::createAccelerationStructures()
 	std::shared_ptr<CommandQueue> cmdQueue = Application::GetCommandQueue();
 	ComPtr<ID3D12GraphicsCommandList4> cmdList = cmdQueue->GetCommandList();
 
-	mpVertexBuffer[0] = CreateTriangleVB(device);
-	mpVertexBuffer[1] = CreatePlaneVB(device);
+	m_VertexBuffers[0] = CreateTriangleVB(device);
+	m_VertexBuffers[1] = CreatePlaneVB(device);
 	AccelerationStructureBuffers bottomLevelBuffers[2];
 
 	// The first bottom-level buffer is for the plane and the triangle
 	const uint32_t vertexCount[] = { 3, 6 };// Triangle has 3 vertices, plane has 6
-	bottomLevelBuffers[0] = CreateBottomLevelAS(device, cmdList, mpVertexBuffer, vertexCount, 2);
-	mpBottomLevelAS[0] = bottomLevelBuffers[0].pResult;
+	bottomLevelBuffers[0] = CreateBottomLevelAS(device, cmdList, m_VertexBuffers, vertexCount, 2);
+	m_BottomLevelAS[0] = bottomLevelBuffers[0].pResult;
 
 	// The second bottom-level buffer is for the triangle only
-	bottomLevelBuffers[1] = CreateBottomLevelAS(device, cmdList, mpVertexBuffer, vertexCount, 1);
-	mpBottomLevelAS[1] = bottomLevelBuffers[1].pResult;
+	bottomLevelBuffers[1] = CreateBottomLevelAS(device, cmdList, m_VertexBuffers, vertexCount, 1);
+	m_BottomLevelAS[1] = bottomLevelBuffers[1].pResult;
 
 	// Create the TLAS
-	BuildTopLevelAS(device, cmdList, mpBottomLevelAS, mTlasSize, 0, false, mTopLevelBuffers);
+	BuildTopLevelAS(device, cmdList, m_BottomLevelAS, c_TlasSize, 0, false, m_TopLevelBuffers);
 
 	// The tutorial doesn't have any resource lifetime management, so we flush and sync here. This is not required by the DXR spec - you can submit the list whenever you like as long as you take care of the resources lifetime.
 	//mFenceValue = submitCommandList(mpCmdList, mpCmdQueue, mpFence, mFenceValue);
@@ -656,17 +667,165 @@ void DxrGame::createAccelerationStructures()
 
 void DxrGame::createRtPipelineState() 
 {
+	ComPtr<ID3D12Device5> device = Application::GetDevice();
 
+	// Need 16 subobjects:
+    //  1 for DXIL library    
+    //  3 for the hit-groups (triangle hit group, plane hit-group, shadow-hit group)
+    //  2 for RayGen root-signature (root-signature and the subobject association)
+    //  2 for triangle hit-program root-signature (root-signature and the subobject association)
+    //  2 for the plane-hit root-signature (root-signature and the subobject association)
+    //  2 for shadow-program and miss root-signature (root-signature and the subobject association)
+    //  2 for shader config (shared between all programs. 1 for the config, 1 for association)
+    //  1 for pipeline config
+    //  1 for the global root signature
+    std::array<D3D12_STATE_SUBOBJECT,16> subobjects;
+    uint32_t index = 0;
+
+    // Create the DXIL library
+    DxilLibrary dxilLib = createDxilLibrary();
+    subobjects[index++] = dxilLib.stateSubobject; // 0 Library
+    
+    // Create the triangle HitProgram
+    HitProgram triHitProgram(nullptr, kTriangleChs, kTriHitGroup);
+    subobjects[index++] = triHitProgram.subObject; // 1 Triangle Hit Group
+
+    // Create the plane HitProgram
+    HitProgram planeHitProgram(nullptr, kPlaneChs, kPlaneHitGroup);
+    subobjects[index++] = planeHitProgram.subObject; // 2 Plant Hit Group
+
+    // Create the shadow-ray hit group
+    HitProgram shadowHitProgram(nullptr, kShadowChs, kShadowHitGroup);
+    subobjects[index++] = shadowHitProgram.subObject; // 3 Shadow Hit Group
+
+    // Create the ray-gen root-signature and association
+    LocalRootSignature rgsRootSignature(device, createRayGenRootDesc().desc);
+    subobjects[index] = rgsRootSignature.subobject; // 4 Ray Gen Root Sig
+
+    uint32_t rgsRootIndex = index++; // 4
+    ExportAssociation rgsRootAssociation(&kRayGenShader, 1, &(subobjects[rgsRootIndex]));
+    subobjects[index++] = rgsRootAssociation.subobject; // 5 Associate Root Sig to RGS
+
+    // Create the tri hit root-signature and association
+    LocalRootSignature triHitRootSignature(device, createTriangleHitRootDesc().desc);
+    subobjects[index] = triHitRootSignature.subobject; // 6 Triangle Hit Root Sig
+
+    uint32_t triHitRootIndex = index++; // 6
+    ExportAssociation triHitRootAssociation(&kTriangleChs, 1, &(subobjects[triHitRootIndex]));
+    subobjects[index++] = triHitRootAssociation.subobject; // 7 Associate Triangle Root Sig to Triangle Hit Group
+
+    // Create the plane hit root-signature and association
+    LocalRootSignature planeHitRootSignature(device, createPlaneHitRootDesc().desc);
+    subobjects[index] = planeHitRootSignature.subobject; // 8 Plane Hit Root Sig
+
+    uint32_t planeHitRootIndex = index++; // 8
+    ExportAssociation planeHitRootAssociation(&kPlaneHitGroup, 1, &(subobjects[planeHitRootIndex]));
+    subobjects[index++] = planeHitRootAssociation.subobject; // 9 Associate Plane Hit Root Sig to Plane Hit Group
+
+    // Create the empty root-signature and associate it with the primary miss-shader and the shadow programs
+    D3D12_ROOT_SIGNATURE_DESC emptyDesc = {};
+    emptyDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+    LocalRootSignature emptyRootSignature(device, emptyDesc);
+    subobjects[index] = emptyRootSignature.subobject; // 10 Empty Root Sig for Plane Hit Group and Miss
+
+    uint32_t emptyRootIndex = index++; // 10
+    const WCHAR* emptyRootExport[] = { kMissShader, kShadowChs, kShadowMiss };
+    ExportAssociation emptyRootAssociation(emptyRootExport, arraysize(emptyRootExport), &(subobjects[emptyRootIndex]));
+    subobjects[index++] = emptyRootAssociation.subobject; // 11 Associate empty root sig to Plane Hit Group and Miss shader
+
+    // Bind the payload size to all programs
+    ShaderConfig primaryShaderConfig(sizeof(float) * 2, sizeof(float) * 3);
+    subobjects[index] = primaryShaderConfig.subobject; // 12
+
+    uint32_t primaryShaderConfigIndex = index++;
+    const WCHAR* primaryShaderExports[] = { kRayGenShader, kMissShader, kTriangleChs, kPlaneChs, kShadowMiss, kShadowChs };
+    ExportAssociation primaryConfigAssociation(primaryShaderExports, arraysize(primaryShaderExports), &(subobjects[primaryShaderConfigIndex]));
+    subobjects[index++] = primaryConfigAssociation.subobject; // 13 Associate shader config to all programs
+
+    // Create the pipeline config
+    PipelineConfig config(2); // maxRecursionDepth - 1 TraceRay() from the ray-gen, 1 TraceRay() from the primary hit-shader
+    subobjects[index++] = config.subobject; // 14
+
+    // Create the global root signature and store the empty signature
+    GlobalRootSignature root(device, {});
+	m_EmptyRootSig = root.pRootSig;
+    subobjects[index++] = root.subobject; // 15
+
+    // Create the state
+    D3D12_STATE_OBJECT_DESC desc;
+    desc.NumSubobjects = index; // 16
+    desc.pSubobjects = subobjects.data();
+    desc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
+
+    ThrowIfFailed(device->CreateStateObject(&desc, IID_PPV_ARGS(&m_PipelineStateRtx)));
 }
 
 void DxrGame::createShaderResources()
 {
+	ComPtr<ID3D12Device5> device = Application::GetDevice();
 
+	// Create the output resource. The dimensions and format should match the SWAP-CHAIN
+	D3D12_RESOURCE_DESC resDesc = {};
+	resDesc.DepthOrArraySize = 1;
+	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // The backbuffer is actually DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, but sRGB formats can't be used with UAVs. We will convert to sRGB ourselves in the shader
+	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	resDesc.Width = Application::GetClientWidth();  // SwapChainWidth, in our case ClientWidth = SwapChainWidth
+	resDesc.Height = Application::GetClientHeight(); // SwapChainHeight, in our case ClientHeight= SwapChainHeight
+	resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	resDesc.MipLevels = 1;
+	resDesc.SampleDesc.Count = 1;
+	ThrowIfFailed(device->CreateCommittedResource(&kDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr, IID_PPV_ARGS(&m_OutputResource))); // Starting as copy-source to simplify onFrameRender()
+
+	// Create an SRV/UAV descriptor heap. Need 2 entries - 1 SRV for the scene and 1 UAV for the output
+	m_SrvUavHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2, true);
+
+	// Create the UAV. Based on the root signature we created it should be the first entry
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	device->CreateUnorderedAccessView(m_OutputResource.Get(), nullptr, &uavDesc, m_SrvUavHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// Create the TLAS SRV right after the UAV. Note that we are using a different SRV desc here
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;    // !!! for AS
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;		  // ??? Not sure why it's rquired
+	srvDesc.RaytracingAccelerationStructure.Location = m_TopLevelBuffers.pResult->GetGPUVirtualAddress();
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = m_SrvUavHeap->GetCPUDescriptorHandleForHeapStart();
+	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	device->CreateShaderResourceView(nullptr, &srvDesc, srvHandle);
 }
 
 void DxrGame::createConstantBuffers()
 {
+	ComPtr<ID3D12Device5> device = Application::GetDevice();
 
+	// The shader declares each CB with 3 float3. However, due to HLSL packing rules, we create the CB with vec4 (each float3 needs to start on a 16-byte boundary)
+	XMFLOAT4 bufferData[] = {
+		// Instance 0
+		XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f),
+		XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f),
+
+		// Instance 1
+		XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
+		XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f),
+
+		// Instance 2
+		XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f),
+		XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f),
+	};
+
+	for (uint32_t i = 0; i < 3; i++)
+	{
+		const uint32_t bufferSize = sizeof(XMFLOAT4) * 3;
+		m_ConstantBuffer[i] = CreateBuffer(device, bufferSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
+		uint8_t* pData;
+		ThrowIfFailed(m_ConstantBuffer[i]->Map(0, nullptr, (void**)&pData));
+		memcpy(pData, &bufferData[i * 3], sizeof(bufferData));
+		mpConstantBuffer[i]->Unmap(0, nullptr);
+	}
 }
 
 void DxrGame::createShaderTable()

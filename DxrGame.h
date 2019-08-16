@@ -40,20 +40,6 @@ public:
 	void createConstantBuffers();
 	void createShaderTable();
 
-
-protected:			
-	/* --- DXR Helper Funcs --- */
-	
-	ComPtr<ID3D12Resource> CreateBuffer(ComPtr<ID3D12Device5> pDevice, uint64_t size, D3D12_RESOURCE_FLAGS flags,
-		D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps);
-	ComPtr<ID3D12Resource> CreateTriangleVB(ComPtr<ID3D12Device5> pDevice);
-	ComPtr<ID3D12Resource> CreatePlaneVB(ComPtr<ID3D12Device5> pDevice);
-
-	AccelerationStructureBuffers CreateBottomLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList,
-			ComPtr<ID3D12Resource> pVB[], const uint32_t vertexCount[], uint32_t geometryCount);
-	void BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommandList4> pCmdList, ComPtr<ID3D12Resource> pBottomLevelAS[2],
-		uint64_t& tlasSize, float rotation, bool update, DxrGame::AccelerationStructureBuffers& buffers);
-
 protected:			
 	/* --- Samle Funcs --- */
 	
@@ -77,11 +63,23 @@ protected:
 //										Data members
 // ------------------------------------------------------------------------------------------
 private:
-	// createAccelerationStructures 
-	ComPtr <ID3D12Resource> mpVertexBuffer[2];
-	ComPtr <ID3D12Resource> mpBottomLevelAS[2];
-	AccelerationStructureBuffers mTopLevelBuffers;
-	uint64_t mTlasSize = 0;
+	// createAccelerationStructures()
+	ComPtr <ID3D12Resource> m_VertexBuffers[2];
+	ComPtr <ID3D12Resource> m_BottomLevelAS[2];
+	AccelerationStructureBuffers m_TopLevelBuffers;
+	uint64_t c_TlasSize = 0;
+
+	// createRtPipelineState()
+	ComPtr<ID3D12StateObject> m_PipelineStateRtx;
+	ComPtr<ID3D12RootSignature> m_EmptyRootSig;
+	
+	// createShaderResources()
+	ComPtr<ID3D12Resource> m_OutputResource;
+	ComPtr<ID3D12DescriptorHeap> m_SrvUavHeap;
+	static const uint32_t c_SrvUavHeapSize = 2;
+
+	// createConstantBuffers()
+	ComPtr<ID3D12Resource> m_ConstantBuffer[3];
 
 private:
 	bool m_ContentLoaded;
