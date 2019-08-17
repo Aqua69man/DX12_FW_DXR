@@ -63,6 +63,8 @@ protected:
 //										Data members
 // ------------------------------------------------------------------------------------------
 private:
+	float mRotation = 0;
+
 	// createAccelerationStructures()
 	ComPtr <ID3D12Resource> m_VertexBuffers[2];
 	ComPtr <ID3D12Resource> m_BottomLevelAS[2];

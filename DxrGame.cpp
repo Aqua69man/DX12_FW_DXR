@@ -1114,6 +1114,7 @@ void DxrGame::Update()
 	m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
 }
 
+#if 0
 // Resources must be transitioned from one state to another using a resource BARRIER
 //		and inserting that resource barrier into the command list.
 // For example, before you can use the swap chain's back buffer as a render target, 
@@ -1200,6 +1201,67 @@ void DxrGame::Render()
 		commandQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
 	}
 }
+#endif
+
+void DxrGame::Render()
+{
+	Application::Render();
+	double totalRenderTime = Application::GetRenderTotalTime();
+
+	auto device = Application::GetDevice();
+	auto cmdQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	auto cmdList = cmdQueue->GetCommandList();
+
+	m_CurrentBackBufferIndex = Application::GetCurrentBackbufferIndex();
+	auto backBuffer = Application::GetBackbuffer(m_CurrentBackBufferIndex);
+
+	auto rtv = Application::GetCurrentBackbufferRTV();
+	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
+
+	// Bind the descriptor heaps
+	ID3D12DescriptorHeap* heaps[] = { m_SrvUavHeap.Get() };
+	cmdList->SetDescriptorHeaps(arraysize(heaps), heaps);
+
+	// Refit the top-level acceleration structure
+	BuildTopLevelAS(device, cmdList, m_BottomLevelAS, c_TlasSize, mRotation, true, m_TopLevelBuffers);
+	mRotation += 0.005f;
+
+	// Let's raytrace
+	TransitionResource(cmdList, m_OutputResource, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12_DISPATCH_RAYS_DESC raytraceDesc = {};
+	raytraceDesc.Width = Application::GetClientWidth(); //mSwapChainSize.x;
+	raytraceDesc.Height = Application::GetClientHeight(); //mSwapChainSize.y;
+	raytraceDesc.Depth = 1;
+
+	// RayGen is the first entry in the shader-table
+	raytraceDesc.RayGenerationShaderRecord.StartAddress = m_ShaderTable->GetGPUVirtualAddress() + 0 * c_ShaderTableEntrySize;
+	raytraceDesc.RayGenerationShaderRecord.SizeInBytes = c_ShaderTableEntrySize;
+
+	// Miss is the second entry in the shader-table
+	size_t missOffset = 1 * c_ShaderTableEntrySize;
+	raytraceDesc.MissShaderTable.StartAddress = m_ShaderTable->GetGPUVirtualAddress() + missOffset;
+	raytraceDesc.MissShaderTable.StrideInBytes = c_ShaderTableEntrySize;
+	raytraceDesc.MissShaderTable.SizeInBytes = c_ShaderTableEntrySize * 2;   // 2 miss-entries
+
+	// Hit is the fourth entry in the shader-table
+	size_t hitOffset = 3 * c_ShaderTableEntrySize;
+	raytraceDesc.HitGroupTable.StartAddress = m_ShaderTable->GetGPUVirtualAddress() + hitOffset;
+	raytraceDesc.HitGroupTable.StrideInBytes = c_ShaderTableEntrySize;
+	raytraceDesc.HitGroupTable.SizeInBytes = c_ShaderTableEntrySize * 8;    // 8 hit-entries
+
+	// Bind the empty root signature
+	cmdList->SetComputeRootSignature(m_EmptyRootSig.Get());
+
+	// Dispatch
+	cmdList->SetPipelineState1(m_PipelineStateRtx.Get());
+	cmdList->DispatchRays(&raytraceDesc);
+
+	// Copy the results to the back-buffer
+	TransitionResource(cmdList, m_OutputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	TransitionResource(cmdList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
+	cmdList->CopyResource(backBuffer.Get(), m_OutputResource.Get());
+}
+
 
 void DxrGame::Resize(UINT32 width, UINT32 height)
 {
