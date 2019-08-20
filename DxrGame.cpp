@@ -1218,6 +1218,15 @@ void DxrGame::Render()
 	auto rtv = Application::GetCurrentBackbufferRTV();
 	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
+	//// Clear RT
+	//{
+	//	TransitionResource(cmdList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	//	FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+	//	ClearRTV(cmdList, rtv, clearColor);
+	//	ClearDepth(cmdList, dsv);
+	//}
+
 	// Bind the descriptor heaps
 	ID3D12DescriptorHeap* heaps[] = { m_SrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(arraysize(heaps), heaps);
@@ -1259,7 +1268,24 @@ void DxrGame::Render()
 	// Copy the results to the back-buffer
 	TransitionResource(cmdList, m_OutputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	TransitionResource(cmdList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
+	D3D12_RESOURCE_DESC rs1 = m_OutputResource.Get()->GetDesc();
+	D3D12_RESOURCE_DESC rs2 = backBuffer.Get()->GetDesc();
 	cmdList->CopyResource(backBuffer.Get(), m_OutputResource.Get());
+
+	// PRESENT image
+	{
+		// After rendering the scene, the current back buffer is PRESENTed 
+		//     to the screen.
+		// !!! Before presenting, the back buffer resource must be 
+		//     transitioned to the PRESENT state.
+		TransitionResource(cmdList, backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+
+		// Execute
+		m_FenceValues[m_CurrentBackBufferIndex] = cmdQueue->ExecuteCommandList(cmdList);
+
+		m_CurrentBackBufferIndex = Application::Present();
+		cmdQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackBufferIndex]);
+	}
 }
 
 
