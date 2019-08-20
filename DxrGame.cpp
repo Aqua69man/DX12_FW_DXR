@@ -5,6 +5,7 @@
 #include <fstream>	// ifstream
 #include <sstream>  // stringstream
 #include <array>    // stringstream
+#include <vector>
 
 static dxc::DxcDllSupport gDxcDllHelper;
 
@@ -269,16 +270,15 @@ void BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommand
 
 			const XMVECTOR rotationAxisY = XMVectorSet(0, 1, 0, 0);
 			DirectX::XMMATRIX rotationMat = DirectX::XMMatrixRotationAxis(rotationAxisY, XMConvertToRadians(rotation));
-
 			// The transformation matrices for the instances
 			XMMATRIX transformation[3];
 			transformation[0] = DirectX::XMMatrixIdentity();
-			transformation[1] = DirectX::XMMatrixTranslation(-2, 0, 0) * rotationMat;
-			transformation[2] = DirectX::XMMatrixTranslation(2, 0, 0) * rotationMat;
-
-			// --------------------- TODO - CHECK ---------------------------
-			// ------------------ ROW MAJOR MATRIX 3x4 ----------------------
-			// --------------------- TODO - CHECK ---------------------------
+			transformation[1] = rotationMat * DirectX::XMMatrixTranslation(-2, 0, 0);
+			transformation[2] = rotationMat * DirectX::XMMatrixTranslation(2, 0, 0);
+			// Transposing as INSTANCE_DESC is row major
+			for (auto & t : transformation) {
+				t = DirectX::XMMatrixTranspose(t);
+			}
 
 			// The InstanceContributionToHitGroupIndex is set based on the shader-table layout specified in createShaderTable()
 			// Create the desc for the triangle/plane instance
@@ -294,8 +294,7 @@ void BuildTopLevelAS(ComPtr<ID3D12Device5> pDevice, ComPtr<ID3D12GraphicsCommand
 				instanceDescs[i].InstanceID = i; // This value will be exposed to the shader via InstanceID()
 				instanceDescs[i].InstanceContributionToHitGroupIndex = (i * 2) + 2;  // The indices are relative to to the start of the hit-table entries specified in Raytrace(), so we need 4 and 6
 				instanceDescs[i].Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
-				XMMATRIX m = XMMatrixTranspose(transformation[i]); // GLM is column major, the INSTANCE_DESC is row major
-				memcpy(instanceDescs[i].Transform, &m, sizeof(instanceDescs[i].Transform));
+				memcpy(instanceDescs[i].Transform, &transformation[i], sizeof(instanceDescs[i].Transform));
 				instanceDescs[i].AccelerationStructure = pBottomLevelAS[1]->GetGPUVirtualAddress();
 				instanceDescs[i].InstanceMask = 0xFF; // Ray-Geometry intersections are processed when: (ray-mask__<fromShader_ArgOf_TraceRay> & InstanceMask__<fromTLAS> ) != 0
 
@@ -1221,7 +1220,6 @@ void DxrGame::Render()
 	//// Clear RT
 	//{
 	//	TransitionResource(cmdList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
 	//	FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 	//	ClearRTV(cmdList, rtv, clearColor);
 	//	ClearDepth(cmdList, dsv);
