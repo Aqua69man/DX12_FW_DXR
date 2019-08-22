@@ -1,6 +1,6 @@
-#include "Cube.h"
+#include "CubeGame.h"
 
-#include <d3dcompiler.h>
+#include <d3dcompiler.h> // D3DReadFileToBlob
 
 // =====================================================================================
 //										Global vars 
@@ -47,7 +47,7 @@ static WORD g_Indicies[36] =
 //										Init 
 // =====================================================================================
 
-Game::Game(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync) :
+CubeGame::CubeGame(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync) :
 	Application(hInstance, windowTitle, width, height, vSync),
 	m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX)),
 	m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)width, (float)height)),
@@ -56,7 +56,7 @@ Game::Game(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int heig
 	// The first back buffer index will very likely be 0, but it depends
 	m_CurrentBackBufferIndex = Application::GetCurrentBackbufferIndex();
 }
-Game::~Game() 
+CubeGame::~CubeGame()
 {
 
 }
@@ -65,7 +65,7 @@ Game::~Game()
 //						      LoadContent & UnloadContent
 // =====================================================================================
 
-void Game::UpdateBufferResource(
+void CubeGame::UpdateBufferResource(
 	ComPtr<ID3D12GraphicsCommandList4> commandList,
 	ID3D12Resource** pDestinationResource,
 	ID3D12Resource** pIntermediateResource,
@@ -108,7 +108,7 @@ void Game::UpdateBufferResource(
 }
 
 
-bool Game::LoadContent(std::wstring shaderBlobPath)
+bool CubeGame::LoadContent(std::wstring shaderBlobPath)
 {
 	auto device = Application::GetDevice();
 	auto commandQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -231,7 +231,7 @@ bool Game::LoadContent(std::wstring shaderBlobPath)
 }
 
 
-void Game::UnloadContent() {
+void CubeGame::UnloadContent() {
 	m_ContentLoaded = false;
 }
 
@@ -239,7 +239,7 @@ void Game::UnloadContent() {
 //							  Update & Render & Resize
 // =====================================================================================
 
-void Game::Update() 
+void CubeGame::Update()
 { 
 	Application::Update(); 
 	double totalUpdateTime = Application::GetUpdateTotalTime();
@@ -287,7 +287,7 @@ void Game::Update()
 //						same draw or dispatch call).
 //				* A UAV barrier is not needed if the resource is being used as a 
 //						read - only(Read > Read) resource between draw or dispatches.
-void Game::Render() 
+void CubeGame::Render()
 {
 	Application::Render();
 	double totalRenderTime = Application::GetRenderTotalTime();
@@ -347,7 +347,7 @@ void Game::Render()
 	}
 }
 
-void Game::Resize(UINT32 width, UINT32 height)
+void CubeGame::Resize(UINT32 width, UINT32 height)
 {
 	if (Application::GetClientWidth() != width || Application::GetClientHeight() != height)
 	{
@@ -370,7 +370,7 @@ void Game::Resize(UINT32 width, UINT32 height)
 	}
 }
 
-void Game::ResizeDepthBuffer(int width, int height)
+void CubeGame::ResizeDepthBuffer(int width, int height)
 {
 	if (m_ContentLoaded)
 	{
@@ -414,7 +414,7 @@ void Game::ResizeDepthBuffer(int width, int height)
 //									Helper Funcs
 // =====================================================================================
 
-void Game::TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource, 
+void CubeGame::TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource,
 	D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition
@@ -425,13 +425,13 @@ void Game::TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, Co
 	commandList->ResourceBarrier(1, &barrier);
 }
 
-void Game::ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
+void CubeGame::ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor)
 {
 	commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
 }
 
-void Game::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
+void CubeGame::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
 {
 	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);

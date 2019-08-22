@@ -1,17 +1,17 @@
 #pragma once
 
-#include "Framework/Application.h"
+#include "../DX12FrameWork/Framework/Application.h"
 
 #include <DirectXMath.h>
 
-class Game : public Application
+class CubeGame : public Application
 {
 // ------------------------------------------------------------------------------------------
 //									Function members
 // ------------------------------------------------------------------------------------------
 public:
-	Game(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync);
-	virtual ~Game();
+	CubeGame(HINSTANCE hInstance, const wchar_t * windowTitle, int width, int height, bool vSync);
+	virtual ~CubeGame();
 
 	virtual void Update();
 	virtual void Render();
