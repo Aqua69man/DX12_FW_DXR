@@ -18,6 +18,21 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="External\HighResolutionClock.cpp" />
+    <ClCompile Include="Framework\Application.cpp" />
+    <ClCompile Include="Framework\CommandQueue.cpp" />
+    <ClCompile Include="Framework\Window.cpp" />
+    <ClCompile Include="main_test_framework.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="External\HighResolutionClock.h" />
+    <ClInclude Include="Framework\Application.h" />
+    <ClInclude Include="Framework\CommandQueue.h" />
+    <ClInclude Include="Framework\Window.h" />
+    <ClInclude Include="Helpers\d3dx12.h" />
+    <ClInclude Include="Helpers\Helpers.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{113E3A91-82F9-442F-BE55-5D55BBF561BB}</ProjectGuid>
@@ -85,6 +100,9 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -114,8 +132,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

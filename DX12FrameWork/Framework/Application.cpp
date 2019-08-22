@@ -174,7 +174,7 @@ void Application::Update()
 		wchar_t buffer[500];
 		auto fps = frameCount / totalTime;
 		swprintf(buffer, 500, L"FPS: %f\n", fps);
-		OutputDebugString(buffer);
+		OutputDebugStringW(buffer);
 
 		frameCount = 0;
 		totalTime = 0.0;
