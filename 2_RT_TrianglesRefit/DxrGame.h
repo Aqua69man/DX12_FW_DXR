@@ -28,10 +28,6 @@ public:
 	virtual void Render();
 	virtual void Resize(UINT32 width, UINT32 height);
 
-	// Sample
-	bool LoadContent(std::wstring shaderBlobPath);
-	void UnloadContent();
-
 	// DXR
 	void InitDXR();
 	void createAccelerationStructures();
@@ -41,16 +37,6 @@ public:
 	void createShaderTable();
 
 protected:			
-	/* --- Samle Funcs --- */
-	
-	// Create a GPU buffer.
-	void UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList4> commandList,
-		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
-		size_t numElements, size_t elementSize, const void* bufferData,
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
-	// Resize the depth buffer to match the size of the client area.
-	void ResizeDepthBuffer(int width, int height);
-
 	// Helpers
 	void TransitionResource(ComPtr<ID3D12GraphicsCommandList4> commandList, ComPtr<ID3D12Resource> resource,
 		D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
@@ -77,7 +63,7 @@ private:
 	
 	// createShaderResources()
 	ComPtr<ID3D12Resource> m_OutputResource;
-	ComPtr<ID3D12DescriptorHeap> m_SrvUavHeap;
+	ComPtr<ID3D12DescriptorHeap> m_SrvUavHeap = nullptr;
 	static const uint32_t c_SrvUavHeapSize = 2;
 
 	// createConstantBuffers()
@@ -87,26 +73,6 @@ private:
 	ComPtr<ID3D12Resource> m_ShaderTable;
 	uint32_t c_ShaderTableEntrySize = 0;
 
-private:
-	bool m_ContentLoaded;
-
-	// Vertex buffer for the cube.
-	ComPtr<ID3D12Resource> m_VertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
-	// Index buffer for the cube.
-	ComPtr<ID3D12Resource> m_IndexBuffer;
-	D3D12_INDEX_BUFFER_VIEW m_IndexBufferView;
-
-	// Depth buffer.
-	ComPtr<ID3D12Resource> m_DepthBuffer;
-	// Descriptor heap for depth buffer.
-	ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
-
-	// Root signature
-	ComPtr<ID3D12RootSignature> m_RootSignature;
-
-	// Pipeline state object.
-	ComPtr<ID3D12PipelineState> m_PipelineStateMain;
 private:
 	// View Settings
 	D3D12_VIEWPORT m_Viewport;

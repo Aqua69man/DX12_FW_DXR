@@ -26,9 +26,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	DxrGame game (hInstance, windowTitle, 3500, 1800, false);
 	game.InitDXR();
-	game.LoadContent(exePath);
 	game.Run();
-	game.UnloadContent();
 
 	return 0;
 }
