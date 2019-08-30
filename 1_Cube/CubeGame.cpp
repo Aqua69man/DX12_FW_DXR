@@ -374,7 +374,8 @@ void CubeGame::ResizeDepthBuffer(int width, int height)
 {
 	if (m_ContentLoaded)
 	{
-		// Flush any GPU commands that might be referencing the depth buffer.
+		// Flush any GPU commands that might be 
+		// referencing the depth buffer.
 		Application::Flush();
 
 		width = std::max(1, width);

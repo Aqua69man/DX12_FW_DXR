@@ -1014,7 +1014,6 @@ void DxrGame::Render()
 	}
 }
 
-
 void DxrGame::Resize(UINT32 width, UINT32 height)
 {
 	if (Application::GetClientWidth() != width || Application::GetClientHeight() != height)

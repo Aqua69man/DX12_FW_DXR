@@ -10,6 +10,9 @@
     <Filter Include="External">
       <UniqueIdentifier>{e2280915-a338-40a4-b8de-d102a9d781f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{6b55b1dd-4365-402d-8731-64b915dbbe9a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Framework\Application.cpp">
@@ -44,6 +47,9 @@
     </ClInclude>
     <ClInclude Include="External\HighResolutionClock.h">
       <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Utils.h">
+      <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

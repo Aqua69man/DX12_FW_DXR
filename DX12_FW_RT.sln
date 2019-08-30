@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "1_Cube", "1_Cube\1_Cube.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "2_RT_TrianglesRefit", "2_RT_TrianglesRefit\2_RT_TrianglesRefit.vcxproj", "{F631D231-6E89-4846-AB68-3255E002DD00}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3_Raster_with_RT", "3_Raster_with_RT\3_Raster_with_RT.vcxproj", "{EAAB791B-D461-458E-82D2-63897C8DAD51}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{F631D231-6E89-4846-AB68-3255E002DD00}.Release|x64.Build.0 = Release|x64
 		{F631D231-6E89-4846-AB68-3255E002DD00}.Release|x86.ActiveCfg = Release|Win32
 		{F631D231-6E89-4846-AB68-3255E002DD00}.Release|x86.Build.0 = Release|Win32
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Debug|x64.ActiveCfg = Debug|x64
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Debug|x64.Build.0 = Debug|x64
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Debug|x86.ActiveCfg = Debug|Win32
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Debug|x86.Build.0 = Debug|Win32
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Release|x64.ActiveCfg = Release|x64
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Release|x64.Build.0 = Release|x64
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Release|x86.ActiveCfg = Release|Win32
+		{EAAB791B-D461-458E-82D2-63897C8DAD51}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
