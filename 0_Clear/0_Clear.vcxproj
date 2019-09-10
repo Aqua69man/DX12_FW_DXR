@@ -22,7 +22,8 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{EAAB791B-D461-458E-82D2-63897C8DAD51}</ProjectGuid>
     <RootNamespace>My3RasterwithRT</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <ProjectName>0_Clear</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -118,11 +119,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="RasterRT.h" />
+    <ClInclude Include="Clear.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main_RasterRT.cpp" />
-    <ClCompile Include="RasterRT.cpp" />
+    <ClCompile Include="Main_Clear.cpp" />
+    <ClCompile Include="Clear.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DX12FrameWork\DX12FrameWork.vcxproj">

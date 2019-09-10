@@ -1,10 +1,10 @@
-#include "RasterRT.h"
+#include "Clear.h"
 #include "..\DX12FrameWork\Utils\Utils.h"
 
 // ==============================================================================
 //									Init 
 // ==============================================================================
-RasterRT::RasterRT(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int height, bool vSync) :
+Clear::Clear(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int height, bool vSync) :
 	Application(hInstance, wndTitle, width, height, vSync),
 	m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX)),
 	m_Viewprt(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)width, (float)height)),
@@ -12,15 +12,14 @@ RasterRT::RasterRT(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int
 {
 	// The first back buffer index will very likely be 0, but it depends
 	m_CurrentBackbufferIndex = Application::GetCurrentBackbufferIndex();
-
 }
 
-RasterRT::~RasterRT()
+Clear::~Clear()
 {
 
 }
 
-void RasterRT::LoadContent()
+void Clear::LoadContent()
 {
 	auto device = Application::GetDevice();
 
@@ -36,7 +35,7 @@ void RasterRT::LoadContent()
 	ResizeDepthBuffer(Application::GetClientWidth(), Application::GetClientHeight());
 }
 
-void RasterRT::UnloadContent()
+void Clear::UnloadContent()
 {
 	m_ContentLoaded = false;
 }
@@ -44,7 +43,7 @@ void RasterRT::UnloadContent()
 // ==============================================================================
 //									Resize 
 // ==============================================================================
-void RasterRT::ResizeDepthBuffer(UINT32 width, UINT32 height)
+void Clear::ResizeDepthBuffer(UINT32 width, UINT32 height)
 {
 	if (m_ContentLoaded) {
 		// Flush any GPU commands that might be 
@@ -81,7 +80,7 @@ void RasterRT::ResizeDepthBuffer(UINT32 width, UINT32 height)
 	}
 }
 
-void RasterRT::Resize(UINT32 width, UINT32 height)
+void Clear::Resize(UINT32 width, UINT32 height)
 {
 	if (Application::GetClientWidth() != width && Application::GetClientHeight() != height) 
 	{
@@ -98,7 +97,7 @@ void RasterRT::Resize(UINT32 width, UINT32 height)
 // ==============================================================================
 //								Update & Render
 // ==============================================================================
-void RasterRT::Update() 
+void Clear::Update() 
 {
 	Application::Update();
 	auto updTotalTime = Application::GetUpdateTotalTime();
@@ -106,7 +105,7 @@ void RasterRT::Update()
 	// TODO - UPDs here 
 }
 
-void RasterRT::Render()
+void Clear::Render()
 {
 	Application::Render();
 	auto rndrTotalTime = Application::GetRenderTotalTime();
@@ -124,7 +123,7 @@ void RasterRT::Render()
 	{
 		TransitionResource(cmdList, backbuff, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+		FLOAT clearColor[] = { 0.4f, 0.9f, 0.6f, 1.0f };
 		ClearRTV(cmdList, rtv, clearColor);
 		ClearDepth(cmdList, dsv);
 	}

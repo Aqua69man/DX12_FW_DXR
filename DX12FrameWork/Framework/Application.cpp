@@ -12,7 +12,7 @@
 //										Init 
 // =====================================================================================
 
-Application::Application(HINSTANCE hInstance, const wchar_t* windowTitle, int width, int height, bool vSync) :
+Application::Application(HINSTANCE hInstance, const wchar_t* windowTitle, int width, int height, bool vSync, bool rayTrace) :
 	m_hInstance (hInstance)
 {
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
@@ -35,7 +35,7 @@ Application::Application(HINSTANCE hInstance, const wchar_t* windowTitle, int wi
 		ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter(false);
 
 		if (dxgiAdapter4)
-			m_d3d12Device = CreateDevice(dxgiAdapter4);
+			m_d3d12Device = CreateDevice(dxgiAdapter4, rayTrace);
 
 		if (m_d3d12Device) 
 		{
@@ -337,7 +337,7 @@ ComPtr<IDXGIAdapter4> Application::GetAdapter(bool useWarp)
 // Destroying the DirectX 12 device will cause all of the resources allocated by the device to become invalid.
 // If the device is destroyed before all of the resources that were created by the device, then the 
 //		debug layer will issue warnings about those objects that are still being referenced.
-ComPtr<ID3D12Device5> Application::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
+ComPtr<ID3D12Device5> Application::CreateDevice(ComPtr<IDXGIAdapter4> adapter, bool rayTrace)
 {
 	// D3D_FEATURE_LEVEL  - MinimumFeatureLevel: The minimum D3D_FEATURE_LEVEL 
 	//		required for successful device creation.
@@ -345,11 +345,14 @@ ComPtr<ID3D12Device5> Application::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&d3d12Device5)));
 
 	// Check if the device supports ray tracing.
-	D3D12_FEATURE_DATA_D3D12_OPTIONS5 features = {};
-	HRESULT hr = d3d12Device5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features, sizeof(features));
-	if (FAILED(hr) || features.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
-		throw std::exception();
-
+	if (rayTrace) 
+	{
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 features = {};
+		HRESULT hr = d3d12Device5->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &features, sizeof(features));
+		if (FAILED(hr) || features.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
+			throw std::exception();
+	}
+	
 	// 1) Enable debug messages in debug mode.
 	// 2) ID3D12InfoQueue interface is used to enable break points based on the severity
 	//		of the message and the ability to filter certain messages from being generated.

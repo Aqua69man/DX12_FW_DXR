@@ -23,7 +23,7 @@ inline void ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandL
 }
 
 inline void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> commandList,
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth = 1.0f)
 {
 	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 }

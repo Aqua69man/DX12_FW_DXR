@@ -1,4 +1,4 @@
-#include "RasterRT.h"
+#include "Clear.h"
 
 
 std::wstring GetExePath()
@@ -24,7 +24,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
-	RasterRT game(hInstance, windowTitle, 3500, 1800, false);
+	Clear game(hInstance, windowTitle, 3500, 1800, false);
 	game.LoadContent();
 	game.Run();
 	game.UnloadContent();

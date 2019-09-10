@@ -4,11 +4,11 @@
 #include <DirectXMath.h>
 
 
-class RasterRT : public Application
+class Clear : public Application
 {
 public:
-	RasterRT(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int height, bool vSync);
-	~RasterRT();
+	Clear(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int height, bool vSync);
+	~Clear();
 
 	void Resize(UINT32 width, UINT32 height);
 	void Update();
