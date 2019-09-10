@@ -77,6 +77,9 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3d12.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -118,7 +121,13 @@
     <ClInclude Include="RasterRT.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Main_RasterRT.cpp" />
     <ClCompile Include="RasterRT.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DX12FrameWork\DX12FrameWork.vcxproj">
+      <Project>{113e3a91-82f9-442f-be55-5d55bbf561bb}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

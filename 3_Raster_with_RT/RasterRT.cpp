@@ -1,4 +1,5 @@
 #include "RasterRT.h"
+#include "..\DX12FrameWork\Utils\Utils.h"
 
 // ==============================================================================
 //									Init 
@@ -11,6 +12,7 @@ RasterRT::RasterRT(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int
 {
 	// The first back buffer index will very likely be 0, but it depends
 	m_CurrentBackbufferIndex = Application::GetCurrentBackbufferIndex();
+
 }
 
 RasterRT::~RasterRT()
@@ -18,18 +20,29 @@ RasterRT::~RasterRT()
 
 }
 
-void LoadContent() 
+void RasterRT::LoadContent()
 {
+	auto device = Application::GetDevice();
 
+	// Create the descriptor heap for the depth-stencil view.
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DsvHeap)));
+
+	m_ContentLoaded = true;
+
+	ResizeDepthBuffer(Application::GetClientWidth(), Application::GetClientHeight());
 }
 
-void UnloadContent() 
+void RasterRT::UnloadContent()
 {
-
+	m_ContentLoaded = false;
 }
 
 // ==============================================================================
-//							Resize & Update & Render
+//									Resize 
 // ==============================================================================
 void RasterRT::ResizeDepthBuffer(UINT32 width, UINT32 height)
 {
@@ -82,6 +95,9 @@ void RasterRT::Resize(UINT32 width, UINT32 height)
 	}
 }
 
+// ==============================================================================
+//								Update & Render
+// ==============================================================================
 void RasterRT::Update() 
 {
 	Application::Update();
@@ -95,8 +111,32 @@ void RasterRT::Render()
 	Application::Render();
 	auto rndrTotalTime = Application::GetRenderTotalTime();
 
+	auto cmdQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	auto cmdList = cmdQueue->GetCommandList();
+
 	m_CurrentBackbufferIndex = Application::GetCurrentBackbufferIndex();
 	auto backbuff = Application::GetBackbuffer(m_CurrentBackbufferIndex);
 
-	Application
+	auto rtv = Application::GetCurrentBackbufferRTV();
+	auto dsv = m_DsvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	// Clear RT
+	{
+		TransitionResource(cmdList, backbuff, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+		ClearRTV(cmdList, rtv, clearColor);
+		ClearDepth(cmdList, dsv);
+	}
+
+	// PRESENT image
+	{
+		TransitionResource(cmdList, backbuff, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+		// Execute
+		m_FenceValues[m_CurrentBackbufferIndex] = cmdQueue->ExecuteCommandList(cmdList);
+
+		m_CurrentBackbufferIndex = Application::Present();
+		cmdQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackbufferIndex]);
+	}
 }

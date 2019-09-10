@@ -14,8 +14,11 @@ public:
 	void Update();
 	void Render();
 
-
 	void ResizeDepthBuffer(UINT32 width, UINT32 height);
+
+public:
+	void LoadContent();
+	void UnloadContent();
 
 private:
 	// View params
