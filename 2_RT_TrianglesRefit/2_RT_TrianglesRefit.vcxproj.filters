@@ -16,7 +16,7 @@
     <ClCompile Include="DxrGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="main_DxrGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
