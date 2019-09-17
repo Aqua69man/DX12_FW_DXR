@@ -41,6 +41,12 @@ void Mesh::UnloadContent()
 }
 
 // ==============================================================================
+//								Mesh and Shaders 
+// ==============================================================================
+
+
+
+// ==============================================================================
 //									Resize 
 // ==============================================================================
 void Mesh::ResizeDepthBuffer(UINT32 width, UINT32 height)
@@ -138,4 +144,23 @@ void Mesh::Render()
 		m_CurrentBackbufferIndex = Application::Present();
 		cmdQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackbufferIndex]);
 	}
+}
+
+// ==============================================================================
+//										Main
+// ==============================================================================
+
+int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
+{
+	std::wstring exePath = GetExePath();
+	assert(exePath.size() != 0);
+
+	const wchar_t* windowTitle = L"Learning DirectX 12";
+
+	Mesh game(hInstance, windowTitle, 3500, 1800, false);
+	game.LoadContent();
+	game.Run();
+	game.UnloadContent();
+
+	return 0;
 }

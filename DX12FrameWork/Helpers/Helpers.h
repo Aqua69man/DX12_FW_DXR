@@ -6,8 +6,22 @@
 #include <string>    // For msgBox
 #include <codecvt>   // For wstring_convert
 
-// From DXSampleHelper.h 
-// Source: https://github.com/Microsoft/DirectX-Graphics-Samples
+inline std::wstring GetExePath()
+{
+	WCHAR path[MAX_PATH];
+	HMODULE hModule = GetModuleHandleW(NULL);
+	if (GetModuleFileNameW(hModule, path, MAX_PATH) > 0)
+	{
+		std::wstring wstr = std::wstring(path);
+		size_t pos = wstr.rfind('\\');
+		if (pos != std::string::npos) {
+			auto str = wstr.substr(0, pos + 1);
+			return str;
+		}
+	}
+	return std::wstring(L"");
+}
+
 inline void ThrowIfFailed(HRESULT hr)
 {
 	if (FAILED(hr))
