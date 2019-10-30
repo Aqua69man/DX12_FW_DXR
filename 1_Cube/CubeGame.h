@@ -54,7 +54,7 @@ private:
 	// Depth buffer.
 	ComPtr<ID3D12Resource> m_DepthBuffer;
 	// Descriptor heap for depth buffer.
-	ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
+	ComPtr<ID3D12DescriptorHeap> m_DsvHeap;
 
 	// Root signature
 	ComPtr<ID3D12RootSignature> m_RootSignature;

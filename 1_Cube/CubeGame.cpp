@@ -141,7 +141,7 @@ bool CubeGame::LoadContent(std::wstring shaderBlobPath)
 	dsvHeapDesc.NumDescriptors = 1;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
+	ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DsvHeap)));
 
 	// Load the vertex shader.
 	ComPtr<ID3DBlob> vertexShaderBlob;
@@ -240,7 +240,7 @@ void CubeGame::UnloadContent() {
 // =====================================================================================
 
 void CubeGame::Update()
-{ 
+{
 	Application::Update(); 
 	double totalUpdateTime = Application::GetUpdateTotalTime();
 
@@ -299,7 +299,7 @@ void CubeGame::Render()
 	auto backBuffer = Application::GetBackbuffer(m_CurrentBackBufferIndex);
 
 	auto rtv = Application::GetCurrentBackbufferRTV();
-	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
+	auto dsv = m_DsvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	// Clear RT
 	{
@@ -407,7 +407,7 @@ void CubeGame::ResizeDepthBuffer(int width, int height)
 		dsv.Flags = D3D12_DSV_FLAG_NONE;
 
 		device->CreateDepthStencilView(m_DepthBuffer.Get(), &dsv,
-			m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
+			m_DsvHeap->GetCPUDescriptorHandleForHeapStart());
 	}
 }
 
