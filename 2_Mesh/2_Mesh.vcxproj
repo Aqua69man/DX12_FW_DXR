@@ -120,14 +120,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Scene.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DX12FrameWork\DX12FrameWork.vcxproj">
       <Project>{113e3a91-82f9-442f-be55-5d55bbf561bb}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\PixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\VertexShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
