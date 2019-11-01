@@ -7,6 +7,7 @@
 
 using namespace DirectX;
 
+
 // ==============================================================================
 //									Init 
 // ==============================================================================
@@ -19,7 +20,6 @@ Mesh::Mesh(HINSTANCE hInstance, const wchar_t * wndTitle, int width, int height,
 	// The first back buffer index will very likely be 0, but it depends
 	m_CurrentBackbufferIndex = Application::GetCurrentBackbufferIndex(); 
 }
-
 Mesh::~Mesh()
 {
 
@@ -78,122 +78,110 @@ bool Mesh::LoadContent(std::wstring shaderBlobPath)
 	auto commandQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto commandList = commandQueue->GetCommandList();
 
-	// Vertex buffer
-	{
-		// Upload vertex buffer data.
-		ComPtr<ID3D12Resource> intermediateVertexBuffer;
-		UpdateBufferResource(commandList,
-			&m_VertexBuffer, &intermediateVertexBuffer,
-			_countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
+	// Upload vertex buffer data.
+	ComPtr<ID3D12Resource> intermediateVertexBuffer;
+	UpdateBufferResource(commandList,
+		&m_VertexBuffer, &intermediateVertexBuffer,
+		_countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
 
-		// Create the vertex buffer VIEW.
-		m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
-		m_VertexBufferView.SizeInBytes = sizeof(g_Vertices);
-		m_VertexBufferView.StrideInBytes = sizeof(VertexPosColor);
-	}
+	// Create the vertex buffer view.
+	m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
+	m_VertexBufferView.SizeInBytes = sizeof(g_Vertices);
+	m_VertexBufferView.StrideInBytes = sizeof(VertexPosColor);
 
-	// Index buffer
-	{
-		// Upload index buffer data.
-		ComPtr<ID3D12Resource> intermediateIndexBuffer;
-		UpdateBufferResource(commandList,
-			&m_IndexBuffer, &intermediateIndexBuffer,
-			_countof(g_Indicies), sizeof(WORD), g_Indicies);
+	// Upload index buffer data.
+	ComPtr<ID3D12Resource> intermediateIndexBuffer;
+	UpdateBufferResource(commandList,
+		&m_IndexBuffer, &intermediateIndexBuffer,
+		_countof(g_Indicies), sizeof(uint16_t), g_Indicies);
 
-		// Create index buffer VIEW.
-		m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
-		m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
-		m_IndexBufferView.SizeInBytes = sizeof(g_Indicies);
-	}
+	// Create index buffer view.
+	m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
+	m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
+	m_IndexBufferView.SizeInBytes = sizeof(g_Indicies);
 
 	// Create the descriptor heap for the depth-stencil view.
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DsvHeap)));
+
+	// Load the vertex shader.
+	ComPtr<ID3DBlob> vertexShaderBlob;
+	std::wstring blobPath = std::wstring(shaderBlobPath + L"VertexShader.cso");
+	ThrowIfFailed(D3DReadFileToBlob(blobPath.c_str(), &vertexShaderBlob));
+
+	// Load the pixel shader.
+	ComPtr<ID3DBlob> pixelShaderBlob;
+	blobPath = std::wstring(shaderBlobPath + L"PixelShader.cso");
+	ThrowIfFailed(D3DReadFileToBlob(blobPath.c_str(), &pixelShaderBlob));
+
+	// Create the vertex input layout
+	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+
+	// Create a root signature.
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
 	{
-		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-		dsvHeapDesc.NumDescriptors = 1;
-		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DsvHeap)));
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 	}
 
-	// PSO
+	// Allow input layout and deny unnecessary access to certain pipeline stages.
+	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+	// A single 32-bit constant root parameter that is used by the vertex shader.
+	CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+	rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+
+	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
+	rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+
+	// Serialize the root signature.
+	ComPtr<ID3DBlob> rootSignatureBlob;
+	ComPtr<ID3DBlob> errorBlob;
+	ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDescription,
+		featureData.HighestVersion, &rootSignatureBlob, &errorBlob));
+	// Create the root signature.
+	ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
+		rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
+
+	struct PipelineStateStream
 	{
-		// Load the vertex shader.
-		ComPtr<ID3DBlob> vertexShaderBlob;
-		std::wstring blobPath = std::wstring(shaderBlobPath + L"VertexShader.cso");
-		ThrowIfFailed(D3DReadFileToBlob(blobPath.c_str(), &vertexShaderBlob));
+		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+	} pipelineStateStream;
 
-		// Load the pixel shader.
-		ComPtr<ID3DBlob> pixelShaderBlob;
-		blobPath = std::wstring(shaderBlobPath + L"PixelShader.cso");
-		ThrowIfFailed(D3DReadFileToBlob(blobPath.c_str(), &pixelShaderBlob));
+	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+	rtvFormats.NumRenderTargets = 1;
+	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-		// Create the vertex input layout
-		D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		};
+	pipelineStateStream.pRootSignature = m_RootSignature.Get();
+	pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
+	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
+	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
+	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	pipelineStateStream.RTVFormats = rtvFormats;
 
-		// Create a root signature.
-		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-		if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-		{
-			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-		}
-
-		// Allow input layout and deny unnecessary access to certain pipeline stages.
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
-		// A single 32-bit constant root parameter that is used by the vertex shader.
-		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
-		rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
-
-		// Serialize the root signature.
-		ComPtr<ID3DBlob> rootSignatureBlob;
-		ComPtr<ID3DBlob> errorBlob;
-		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDescription,
-			featureData.HighestVersion, &rootSignatureBlob, &errorBlob));
-		// Create the root signature.
-		ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
-			rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
-
-		struct PipelineStateStream
-		{
-			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
-			CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-			CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-			CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-			CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-			CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-		} pipelineStateStream;
-
-		D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-		rtvFormats.NumRenderTargets = 1;
-		rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-		pipelineStateStream.pRootSignature = m_RootSignature.Get();
-		pipelineStateStream.InputLayout = { inputLayout, _countof(inputLayout) };
-		pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
-		pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
-		pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-		pipelineStateStream.RTVFormats = rtvFormats;
-
-		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
-			sizeof(PipelineStateStream), &pipelineStateStream
-		};
-		ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
-	}
-
+	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+		sizeof(PipelineStateStream), &pipelineStateStream
+	};
+	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
 
 	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
@@ -259,7 +247,7 @@ void Mesh::ResizeDepthBuffer(UINT32 width, UINT32 height)
 
 void Mesh::Resize(UINT32 width, UINT32 height)
 {
-	if (Application::GetClientWidth() != width && Application::GetClientHeight() != height) 
+	if (Application::GetClientWidth() != width || Application::GetClientHeight() != height)
 	{
 		Application::Resize(width, height);
 		m_CurrentBackbufferIndex = Application::GetCurrentBackbufferIndex();
@@ -298,72 +286,60 @@ void Mesh::Update()
 void Mesh::Render()
 {
 	Application::Render();
-	auto totalRenderTime = Application::GetRenderTotalTime();
+	double totalRenderTime = Application::GetRenderTotalTime();
 
-	auto cmdQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	auto cmdList = cmdQueue->GetCommandList();
+	auto commandQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	auto commandList = commandQueue->GetCommandList();
 
 	m_CurrentBackbufferIndex = Application::GetCurrentBackbufferIndex();
-	auto backbuff = Application::GetBackbuffer(m_CurrentBackbufferIndex);
+	auto backBuffer = Application::GetBackbuffer(m_CurrentBackbufferIndex);
 
 	auto rtv = Application::GetCurrentBackbufferRTV();
 	auto dsv = m_DsvHeap->GetCPUDescriptorHandleForHeapStart();
 
-	// Clear RT and DSV
+	// Clear RT
 	{
-		TransitionResource(cmdList, backbuff, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		TransitionResource(commandList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		FLOAT clearColor[] = { 0.4f, 0.9f, 0.6f, 1.0f };
-		ClearRTV(cmdList, rtv, clearColor);
-		ClearDepth(cmdList, dsv);
+		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+		ClearRTV(commandList, rtv, clearColor);
+		ClearDepth(commandList, dsv);
 	}
 
-	// PRESENT image
-	{
-		TransitionResource(cmdList, backbuff, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	// Set Graphics state
+	commandList->SetPipelineState(m_PipelineState.Get());
+	commandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
-		// Execute
-		m_FenceValues[m_CurrentBackbufferIndex] = cmdQueue->ExecuteCommandList(cmdList);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
+	commandList->IASetIndexBuffer(&m_IndexBufferView);
 
-		m_CurrentBackbufferIndex = Application::Present();
-		cmdQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackbufferIndex]);
-	}
+	commandList->RSSetViewports(1, &m_Viewport);
+	commandList->RSSetScissorRects(1, &m_ScissorRect);
 
-	// Set State
-	{
-		// Set Graphics state
-		cmdList->SetPipelineState(m_PipelineState.Get());
-		cmdList->SetGraphicsRootSignature(m_RootSignature.Get());
+	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
-		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		cmdList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
-		cmdList->IASetIndexBuffer(&m_IndexBufferView);
-
-		cmdList->RSSetViewports(1, &m_Viewport);
-		cmdList->RSSetScissorRects(1, &m_ScissorRect);
-
-		cmdList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-
-		// Update the MVP matrix
-		XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
-		mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
-		cmdList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
-	}
+	// Update the MVP matrix
+	XMMATRIX mvpMatrix = XMMatrixMultiply(m_ModelMatrix, m_ViewMatrix);
+	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
+	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
 	// Draw
-	{
-		cmdList->DrawIndexedInstanced(_countof(g_Indicies), 1, 0, 0, 0);
-	}
+	commandList->DrawIndexedInstanced(_countof(g_Indicies), 1, 0, 0, 0);
 
 	// PRESENT image
 	{
-		TransitionResource(cmdList, backbuff, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		// After rendering the scene, the current back buffer is PRESENTed 
+		//     to the screen.
+		// !!! Before presenting, the back buffer resource must be 
+		//     transitioned to the PRESENT state.
+		TransitionResource(commandList, backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 		// Execute
-		m_FenceValues[m_CurrentBackbufferIndex] = cmdQueue->ExecuteCommandList(cmdList);
+		m_FenceValues[m_CurrentBackbufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
 		m_CurrentBackbufferIndex = Application::Present();
-		cmdQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackbufferIndex]);
+		commandQueue->WaitForFenceValue(m_FenceValues[m_CurrentBackbufferIndex]);
 	}
 }
 

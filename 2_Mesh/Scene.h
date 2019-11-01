@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fbxsdk.h>
 #include <DirectXMath.h>
 using namespace DirectX;
 
@@ -21,7 +22,7 @@ static VertexPosColor g_Vertices[8] = {
 	{ XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
 };
 
-static uint32_t g_Indicies[36] =
+static uint16_t g_Indicies[36] =
 {
 	0, 1, 2, 0, 2, 3,
 	4, 6, 5, 4, 7, 6,
@@ -38,3 +39,27 @@ public:
 	~Scene();
 };
 
+
+
+
+
+class FbxLoader 
+{
+private:
+	/* Tab character ("\t") counter */
+	int numTabs = 0;
+
+public:
+
+	/* Print the required number of tabs. */
+	void PrintTabs();
+
+	/* Return a string-based representation based on the attribute type. */
+	FbxString GetAttributeTypeName(FbxNodeAttribute::EType type);
+
+	/* Print an attribute. */
+	void PrintAttribute(FbxNodeAttribute* pAttribute);
+
+	/* Print a node, its attributes, and all its children recursively. */
+	void PrintNode(FbxNode* pNode);
+};
