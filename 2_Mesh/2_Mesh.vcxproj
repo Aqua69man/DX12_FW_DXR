@@ -83,6 +83,7 @@
     <Link>
       <AdditionalDependencies>libfbxsdk-md.lib;libxml2-md.lib;zlib-md.lib;d3d12.lib;D3DCompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>T:\Tools\SDKs\FBX_SDK\2019.5\lib\vs2017\x64\debug;</AdditionalLibraryDirectories>
+      <SubSystem>NotSet</SubSystem>
     </Link>
     <PreBuildEvent>
       <Command>copy T:\Tools\SDKs\FBX_SDK\2019.5\lib\vs2017\x64\debug\libfbxsdk.dll $(OutDir)
