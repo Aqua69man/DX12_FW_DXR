@@ -1,0 +1,12 @@
+<node name=Patch translation='(0, 0, 0)' rotation='(-90, 0, 0)' scaling='(1, 1, 1)'>
+	<attribute type=patch name=Patch/>
+</node>
+<node name=SkeletonRoot translation='(0, -40, 0)' rotation='(0, 0, 0)' scaling='(1, 1, 1)'>
+	<attribute type=skeleton name=Skeleton/>
+	<node name=SkeletonLimbNode1 translation='(0, 40, 0)' rotation='(0, 0, 0)' scaling='(1, 1, 1)'>
+		<attribute type=skeleton name=SkeletonLimbNode1/>
+		<node name=SkeletonLimbNode2 translation='(0, 40, 0)' rotation='(0, 0, 0)' scaling='(1, 1, 1)'>
+			<attribute type=skeleton name=SkeletonLimbNode2/>
+		</node>
+	</node>
+</node>

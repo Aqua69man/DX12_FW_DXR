@@ -3,7 +3,7 @@
 #include "..\DX12FrameWork\Utils\Utils.h"
 
 #include "Mesh.h"
-#include "Scene.h"
+#include "FbxLoader0.h"
 
 using namespace DirectX;
 
@@ -402,8 +402,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	//game.UnloadContent();
 
 	// Change the following filename to a suitable filename value.
-	FbxLoader fbxLoader;
-	fbxLoader.Test("T:\\Playpan\\DX12_FW_DXR\\2_Mesh\\Data\\PepeMocap.fbx");
+	FbxLoader0 fbxLoader("OUT.xml");
+	fbxLoader.PrintFbxContent("T:\\Playpan\\DX12_FW_DXR\\2_Mesh\\Data\\ExportScene01.fbx");
 
 	return 0;
 }
