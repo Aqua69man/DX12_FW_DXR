@@ -22,6 +22,14 @@ inline std::wstring GetExePath()
 	return std::wstring(L"");
 }
 
+inline std::string GetWorkingDirPath()
+{
+	CHAR path[MAX_PATH];
+	GetCurrentDirectory(MAX_PATH, path);
+	std::string wPath = std::string(path);
+	return wPath;
+}
+
 inline void ThrowIfFailed(HRESULT hr)
 {
 	if (FAILED(hr))

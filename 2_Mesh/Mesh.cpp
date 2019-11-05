@@ -403,7 +403,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	// Change the following filename to a suitable filename value.
 	FbxLoader0 fbxLoader("OUT.xml");
-	fbxLoader.PrintFbxContent("T:\\Playpan\\DX12_FW_DXR\\2_Mesh\\Data\\ExportScene01.fbx");
+	std::string fbxPath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
+	fbxLoader.PrintFbxContent(fbxPath.c_str());
 
 	return 0;
 }
