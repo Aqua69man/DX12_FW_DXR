@@ -3,7 +3,7 @@
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
-	std::wstring exePath = GetExePath();
+	std::wstring exePath = GetExeDirW();
 	assert(exePath.size() != 0);
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";

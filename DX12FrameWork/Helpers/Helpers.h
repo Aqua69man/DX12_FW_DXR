@@ -6,7 +6,7 @@
 #include <string>    // For msgBox
 #include <codecvt>   // For wstring_convert
 
-inline std::wstring GetExePath()
+inline std::wstring GetExeDirW()
 {
 	WCHAR path[MAX_PATH];
 	HMODULE hModule = GetModuleHandleW(NULL);

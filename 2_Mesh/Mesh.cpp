@@ -391,8 +391,8 @@ void Mesh::Render()
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 //int main(int argc, char** argv)
 {
-	std::wstring exePath = GetExePath();
-	assert(exePath.size() != 0);
+	std::wstring exeDir = GetExeDirW();
+	std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
@@ -403,8 +403,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	// Change the following filename to a suitable filename value.
 	FbxLoader0 fbxLoader("OUT.xml");
-	std::string fbxPath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
-	fbxLoader.PrintFbxContent(fbxPath.c_str());
+	fbxLoader.PrintFbxContent(fbxFilePath.c_str());
 
 	return 0;
 }
