@@ -3,7 +3,7 @@
 #include "..\DX12FrameWork\Utils\Utils.h"
 
 #include "Mesh.h"
-#include "FbxLoader0.h"
+#include "SceneLoader/FbxLoader0.h"
 
 using namespace DirectX;
 

@@ -128,11 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h" />
-    <ClInclude Include="FbxLoader0.h" />
+    <ClInclude Include="SceneLoader\FbxLoader0.h" />
+    <ClInclude Include="SceneLoader\FbxLoader1.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="FbxLoader0.cpp" />
+    <ClCompile Include="SceneLoader\FbxLoader0.cpp" />
+    <ClCompile Include="SceneLoader\FbxLoader1.cxx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DX12FrameWork\DX12FrameWork.vcxproj">

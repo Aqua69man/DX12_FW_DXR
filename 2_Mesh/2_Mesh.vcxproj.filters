@@ -12,21 +12,30 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{06817aaa-a8cb-4fad-a692-4f45a547ed8e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SceneLoader">
+      <UniqueIdentifier>{e6909467-3b68-4a7d-8a48-ceb0b1d9d0c8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FbxLoader0.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="SceneLoader\FbxLoader0.h">
+      <Filter>SceneLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneLoader\FbxLoader1.h">
+      <Filter>SceneLoader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FbxLoader0.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="SceneLoader\FbxLoader0.cpp">
+      <Filter>SceneLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneLoader\FbxLoader1.cxx">
+      <Filter>SceneLoader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
