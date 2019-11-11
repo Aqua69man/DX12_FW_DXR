@@ -5,37 +5,39 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{06817aaa-a8cb-4fad-a692-4f45a547ed8e}</UniqueIdentifier>
     </Filter>
     <Filter Include="SceneLoader">
       <UniqueIdentifier>{e6909467-3b68-4a7d-8a48-ceb0b1d9d0c8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FbxLoader">
+      <UniqueIdentifier>{2461c38f-55cc-4224-ade7-a6bb49876001}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="SceneLoader\SceneContext.h">
+      <Filter>SceneLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxLoader\FbxLoader0.h">
+      <Filter>FbxLoader</Filter>
+    </ClInclude>
     <ClInclude Include="Mesh.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="SceneLoader\FbxLoader0.h">
-      <Filter>SceneLoader</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneLoader\FbxLoader1.h">
-      <Filter>SceneLoader</Filter>
+    <ClInclude Include="FbxLoader1.h">
+      <Filter>FbxLoader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SceneLoader\FbxLoader0.cpp">
+    <ClCompile Include="SceneLoader\SceneContext.cxx">
       <Filter>SceneLoader</Filter>
     </ClCompile>
-    <ClCompile Include="SceneLoader\FbxLoader1.cxx">
-      <Filter>SceneLoader</Filter>
+    <ClCompile Include="FbxLoader\FbxLoader0.cpp">
+      <Filter>FbxLoader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

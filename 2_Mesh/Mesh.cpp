@@ -3,7 +3,8 @@
 #include "..\DX12FrameWork\Utils\Utils.h"
 
 #include "Mesh.h"
-#include "SceneLoader/FbxLoader0.h"
+#include "FbxLoader/FbxLoader0.h"
+#include "FbxLoader/FbxLoader1.h"
 
 using namespace DirectX;
 
@@ -404,6 +405,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	// Change the following filename to a suitable filename value.
 	FbxLoader0 fbxLoader("OUT.xml");
 	fbxLoader.PrintFbxContent(fbxFilePath.c_str());
+
+	//std::vector<MyVertex> verts;
+	//LoadFBX(fbxFilePath.c_str(), &verts);
 
 	return 0;
 }
