@@ -4,15 +4,24 @@
 #include <vector>
 #include <assert.h>
 
-struct MyVertex
+
+// Vertex data for a colored cube.
+struct VertexPosColor
 {
-	float pos[3];
+	XMFLOAT3 Position;
+	XMFLOAT3 Color;
+
+	bool operator==(const VertexPosColor & vertex) {
+		return ( Position.x == vertex.Position.x &&
+				 Position.y == vertex.Position.y &&
+				 Position.z == vertex.Position.z
+				);
+	}
 };
 
 FbxManager* g_pFbxSdkManager = nullptr;
 
-
-bool LoadFBX(const char * fbxFilePath, std::vector<MyVertex> * pOutVertexVector)
+bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertices, std::vector<uint16_t> * pOutIndices)
 {
 	if (g_pFbxSdkManager == nullptr)
 	{
@@ -32,6 +41,11 @@ bool LoadFBX(const char * fbxFilePath, std::vector<MyVertex> * pOutVertexVector)
 	if (!bSuccess) return false;
 
 	pImporter->Destroy();
+
+	// Converting patch, NURBS, mesh into Triangle MESH - 
+	//	   i.e. AttributeType will change to eMesh
+	FbxGeometryConverter lGeomConverter(g_pFbxSdkManager);
+	lGeomConverter.Triangulate(pFbxScene, /*replace*/true);
 
 	FbxNode* pFbxRootNode = pFbxScene->GetRootNode();
 
@@ -61,16 +75,25 @@ bool LoadFBX(const char * fbxFilePath, std::vector<MyVertex> * pOutVertexVector)
 				for (int k = 0; k < iNumVertices; k++) {
 					int iControlPointIndex = pMesh->GetPolygonVertex(j, k);
 
-					MyVertex vertex;
-					vertex.pos[0] = (float)pVertices[iControlPointIndex].mData[0];
-					vertex.pos[1] = (float)pVertices[iControlPointIndex].mData[1];
-					vertex.pos[2] = (float)pVertices[iControlPointIndex].mData[2];
-					pOutVertexVector->push_back(vertex);
+					VertexPosColor vertex;
+					vertex.Position.x = (float)pVertices[iControlPointIndex].mData[0];
+					vertex.Position.y = (float)pVertices[iControlPointIndex].mData[1];
+					vertex.Position.z = (float)pVertices[iControlPointIndex].mData[2];
+
+					vertex.Color.x = rand() / float(RAND_MAX);
+					vertex.Color.y = rand() / float(RAND_MAX);
+					vertex.Color.z = rand() / float(RAND_MAX);
+
+					//if (std::find(pOutVertices->begin(), pOutVertices->end(), vertex) == pOutVertices->end()) 
+						pOutVertices->push_back(vertex);
+
+					uint16_t index = pMesh->GetPolygonVertexIndex(j);
+					pOutIndices->push_back(index);
 				}
+
 			}
 
 		}
-
 	}
 	return true;
 }

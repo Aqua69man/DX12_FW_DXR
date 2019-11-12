@@ -6,39 +6,16 @@
 #include "FbxLoader/FbxLoader0.h"
 #include "FbxLoader/FbxLoader1.h"
 
+#include <set>
+#include <iostream>
+
 using namespace DirectX;
 
 // ==============================================================================
 //								Global Vars 
 // ==============================================================================
-
-// Vertex data for a colored cube.
-struct VertexPosColor
-{
-	XMFLOAT3 Position;
-	XMFLOAT3 Color;
-};
-
-static VertexPosColor g_Vertices[8] = {
-	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
-	{ XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
-	{ XMFLOAT3(1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
-	{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
-	{ XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
-	{ XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
-	{ XMFLOAT3(1.0f,  1.0f,  1.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-	{ XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
-};
-
-static uint16_t g_Indicies[36] =
-{
-	0, 1, 2, 0, 2, 3,
-	4, 6, 5, 4, 7, 6,
-	4, 5, 1, 4, 1, 0,
-	3, 2, 6, 3, 6, 7,
-	1, 5, 6, 1, 6, 2,
-	4, 0, 3, 4, 3, 7
-};
+std::vector<VertexPosColor> vertices;
+std::vector<uint16_t> indicies;
 
 // ==============================================================================
 //									Init 
@@ -104,11 +81,14 @@ void Mesh::UpdateBufferResource(
 }
 
 
-bool Mesh::LoadContent(std::wstring shaderBlobPath)
+bool Mesh::LoadContent(std::wstring shaderBlobPath, std::string fbxFilePath)
 {
 	auto device = Application::GetDevice();
 	auto commandQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto commandList = commandQueue->GetCommandList();
+
+
+	LoadFBX(fbxFilePath.c_str(), &vertices, &indicies);
 
 	// Vertex buffer
 	ComPtr<ID3D12Resource> intermediateVertexBuffer;
@@ -116,11 +96,11 @@ bool Mesh::LoadContent(std::wstring shaderBlobPath)
 		// Upload vertex buffer data.
 		UpdateBufferResource(commandList,
 			&m_VertexBuffer, &intermediateVertexBuffer,
-			_countof(g_Vertices), sizeof(VertexPosColor), g_Vertices);
+			vertices.size(), sizeof(VertexPosColor), &vertices[0]);
 
 		// Create the vertex buffer view.
 		m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
-		m_VertexBufferView.SizeInBytes = sizeof(g_Vertices);
+		m_VertexBufferView.SizeInBytes = (UINT) vertices.size() * sizeof(vertices[0]);
 		m_VertexBufferView.StrideInBytes = sizeof(VertexPosColor);
 	}
 
@@ -130,12 +110,12 @@ bool Mesh::LoadContent(std::wstring shaderBlobPath)
 		// Upload index buffer data.
 		UpdateBufferResource(commandList,
 			&m_IndexBuffer, &intermediateIndexBuffer,
-			_countof(g_Indicies), sizeof(uint16_t), g_Indicies);
+			indicies.size(), sizeof(uint16_t), &indicies[0]);
 
 		// Create index buffer view.
 		m_IndexBufferView.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
 		m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
-		m_IndexBufferView.SizeInBytes = sizeof(g_Indicies);
+		m_IndexBufferView.SizeInBytes = (UINT) indicies.size() * sizeof(indicies[0]);
 	}
 
 	// Create the descriptor heap for the depth-stencil view.
@@ -313,7 +293,7 @@ void Mesh::Update()
 	m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
 	// Update the view matrix.
-	const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
+	const XMVECTOR eyePosition = XMVectorSet(0, 0, -50, 1);
 	const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
 	const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
 	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
@@ -365,7 +345,7 @@ void Mesh::Render()
 	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
 	// Draw
-	commandList->DrawIndexedInstanced(_countof(g_Indicies), 1, 0, 0, 0);
+	commandList->DrawInstanced((UINT)vertices.size(), 1, 0, 0);
 
 	// PRESENT image
 	{
@@ -397,17 +377,17 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
-	//Mesh game(hInstance, windowTitle, 3500, 1800, false);
-	//game.LoadContent(exePath);
-	//game.Run();
-	//game.UnloadContent();
+	Mesh game(hInstance, windowTitle, 3500, 1800, false);
+	game.LoadContent(exeDir, fbxFilePath);
+	game.Run();
+	game.UnloadContent();
 
 	// Change the following filename to a suitable filename value.
-	FbxLoader0 fbxLoader("OUT.xml");
-	fbxLoader.PrintFbxContent(fbxFilePath.c_str());
+	//FbxLoader0 fbxLoader("OUT.xml");
+	//fbxLoader.PrintFbxContent(fbxFilePath.c_str());
 
-	//std::vector<MyVertex> verts;
-	//LoadFBX(fbxFilePath.c_str(), &verts);
+	//std::vector<VertexPosColor> verts;
+	//std::vector<uint16_t> indices;
 
 	return 0;
 }

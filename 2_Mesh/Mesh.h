@@ -23,7 +23,7 @@ public:
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 public:
-	bool LoadContent(std::wstring shaderBlobPath);
+	bool LoadContent(std::wstring shaderBlobPath, std::string fbxFilePath);
 	void UnloadContent();
 
 private:
