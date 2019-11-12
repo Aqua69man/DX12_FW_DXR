@@ -345,7 +345,11 @@ void Mesh::Render()
 	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
 	// Draw
+#ifdef INDEXED_DRAW_SUPPORTED
+	commandList->DrawIndexedInstanced((UINT)indicies.size(), 1, 0, 0, 0);
+#else
 	commandList->DrawInstanced((UINT)vertices.size(), 1, 0, 0);
+#endif
 
 	// PRESENT image
 	{
@@ -373,7 +377,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 //int main(int argc, char** argv)
 {
 	std::wstring exeDir = GetExeDirW();
-	std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
+	std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\PepeMocap.fbx";
+	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 

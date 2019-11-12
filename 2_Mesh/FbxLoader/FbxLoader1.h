@@ -4,6 +4,7 @@
 #include <vector>
 #include <assert.h>
 
+#define INDEXED_DRAW_SUPPORTED
 
 // Vertex data for a colored cube.
 struct VertexPosColor
@@ -84,13 +85,22 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 					vertex.Color.y = rand() / float(RAND_MAX);
 					vertex.Color.z = rand() / float(RAND_MAX);
 
-					//if (std::find(pOutVertices->begin(), pOutVertices->end(), vertex) == pOutVertices->end()) 
+#ifdef INDEXED_DRAW_SUPPORTED
+					std::vector<VertexPosColor>::iterator itFind = std::find(pOutVertices->begin(), pOutVertices->end(), vertex);
+					if (itFind == pOutVertices->end()) 
+					{
 						pOutVertices->push_back(vertex);
-
-					uint16_t index = pMesh->GetPolygonVertexIndex(j);
-					pOutIndices->push_back(index);
+						pOutIndices->push_back(j + k);
+					}
+					else {
+						int indexFromIt = std::distance(pOutVertices->begin(), itFind);
+						pOutIndices->push_back(indexFromIt);
+					}
+					//uint16_t index = pMesh->GetPolygonVertexIndex(j);
+#else
+					pOutVertices->push_back(vertex);
+#endif
 				}
-
 			}
 
 		}
