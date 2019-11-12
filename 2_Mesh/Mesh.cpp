@@ -377,7 +377,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 //int main(int argc, char** argv)
 {
 	std::wstring exeDir = GetExeDirW();
-	std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\PepeMocap.fbx";
+	std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
 	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";

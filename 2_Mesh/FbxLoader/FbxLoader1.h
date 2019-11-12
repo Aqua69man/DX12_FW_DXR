@@ -42,7 +42,25 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 	if (!bSuccess) return false;
 
 	pImporter->Destroy();
+	
+	// ----------------------------- Convert Axis
+	// Convert Axis System to what is used in this example, if needed
+	FbxAxisSystem SceneAxisSystem = pFbxScene->GetGlobalSettings().GetAxisSystem();
+	FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eRightHanded);
+	if (SceneAxisSystem != OurAxisSystem)
+	{
+		OurAxisSystem.ConvertScene(pFbxScene);
+	}
 
+	// Convert Unit System to what is used in this example, if needed
+	FbxSystemUnit SceneSystemUnit = pFbxScene->GetGlobalSettings().GetSystemUnit();
+	if (SceneSystemUnit.GetScaleFactor() != 1.0)
+	{
+		//The unit in this example is centimeter.
+		FbxSystemUnit::cm.ConvertScene(pFbxScene);
+	}
+
+	// ----------------------------- Converting to Mesh
 	// Converting patch, NURBS, mesh into Triangle MESH - 
 	//	   i.e. AttributeType will change to eMesh
 	FbxGeometryConverter lGeomConverter(g_pFbxSdkManager);
@@ -89,11 +107,14 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 					std::vector<VertexPosColor>::iterator itFind = std::find(pOutVertices->begin(), pOutVertices->end(), vertex);
 					if (itFind == pOutVertices->end()) 
 					{
+						uint16_t index = pOutVertices->size();
 						pOutVertices->push_back(vertex);
-						pOutIndices->push_back(j + k);
+
+						pOutIndices->push_back(index);
 					}
-					else {
-						int indexFromIt = std::distance(pOutVertices->begin(), itFind);
+					else 
+					{
+						uint16_t indexFromIt = std::distance(pOutVertices->begin(), itFind);
 						pOutIndices->push_back(indexFromIt);
 					}
 					//uint16_t index = pMesh->GetPolygonVertexIndex(j);
