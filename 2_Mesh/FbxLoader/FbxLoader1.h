@@ -117,9 +117,9 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 						uint16_t indexFromIt = std::distance(pOutVertices->begin(), itFind);
 						pOutIndices->push_back(indexFromIt);
 					}
-					//uint16_t index = pMesh->GetPolygonVertexIndex(j);
 #else
 					pOutVertices->push_back(vertex);
+					pOutIndices->push_back(0);
 #endif
 				}
 			}
