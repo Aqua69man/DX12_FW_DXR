@@ -1,0 +1,28 @@
+coomon - common basic funcs (not runable)
+
+_________
+ExportDocument
+ExportScene01
+ExportScene02
+
+ExportScene03
+	ExportScene03/main.cxx, the custom classes MyFbxMesh and MyFbxObject are defined in 
+	ExportScene03/MyFbxMesh.h. These classes respectively inherit from FbxMesh and FbxObject.
+
+	Custom User Data for Layer Elements - in ExportScene03 refer to the CreateCubeWithMaterialAndMyFbxMesh() function. 
+	This function creates a custom compound based on float and boolean data types, 
+	and adds data for each vertex.
+
+ExportScene04
+ExportScene05
+MyOwnWriterReader - provides insight on how to customize your own FbxReader and FbxWriter classes.
+
+ExportScene05, UserProperties and ImportExport - provide insight on how to get and set data of custom properties.
+
+
+// get all meshes in a scene
+You can get all the objects of a certain type in a scene using the concept of connections. In the following code snippet, we iterate through the meshes connected to a scene by calling lScene->GetSrcObjectCount(FbxMesh::ClassId).
+for(int i = 0; i < lScene->GetSrcObjectCount(FbxMesh::ClassId); i++) {
+    FbxMesh* lMesh = (FbxMesh*)lScene->GetSrcObject(FbxMesh::ClassId, i);
+    //...
+}
