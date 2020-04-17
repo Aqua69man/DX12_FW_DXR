@@ -383,7 +383,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
-	Mesh game(hInstance, windowTitle, 3500, 1800, false);
+	Mesh game(hInstance, windowTitle, 2400, 1200, false);
 	game.LoadContent(exeDir, fbxFilePath);
 	game.Run();
 	game.UnloadContent();
