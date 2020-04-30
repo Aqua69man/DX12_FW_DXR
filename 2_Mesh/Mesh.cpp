@@ -3,7 +3,7 @@
 #include "..\DX12FrameWork\Utils\Utils.h"
 
 #include "Mesh.h"
-#include "FbxLoader/FbxLoader0.h"
+#include "FbxLoader/FbxHierarchyVisualizer.h"
 #include "FbxLoader/FbxLoader1.h"
 
 #include <set>
@@ -379,18 +379,18 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	std::wstring exeDir = GetExeDirW();
 	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\PepeMocap.fbx";
 	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\cone.fbx";
-	std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
+	std::string fbxFilePath = "E:/FBX_Models/SpherePlane_Textured.fbx";
+	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
-	Mesh game(hInstance, windowTitle, 2400, 1200, false);
-	game.LoadContent(exeDir, fbxFilePath);
-	game.Run();
-	game.UnloadContent();
+	//Mesh game(hInstance, windowTitle, 2400, 1200, false);
+	//game.LoadContent(exeDir, fbxFilePath);
+	//game.Run();
+	//game.UnloadContent();
 
 	// Change the following filename to a suitable filename value.
-	//FbxLoader0 fbxLoader("OUT.xml");
-	//fbxLoader.PrintFbxContent(fbxFilePath.c_str());
+	PrintFbxHierarchy(fbxFilePath.c_str(), "z_Hierarchy_SpherePlane.xml");
 
 	//std::vector<VertexPosColor> verts;
 	//std::vector<uint16_t> indices;

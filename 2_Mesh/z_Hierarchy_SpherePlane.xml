@@ -1,0 +1,9 @@
+<node name=pSphere2 translation='(-0.239538, 2.31327, 0.562812)' rotation='(0, 0, 0)' scaling='(1.62616, 1.62616, 1.62616)'>
+	<attribute type=mesh name=/>
+</node>
+<node name=areaLight1 translation='(-4.67887, 6.28887, 2.22575)' rotation='(-19.7923, -87.2074, -4.0776)' scaling='(1, 1, 1)'>
+	<attribute type=light name=/>
+</node>
+<node name=pPlane1 translation='(0, 0, 0)' rotation='(0, 0, 0)' scaling='(26.3279, 1, 25.2234)'>
+	<attribute type=mesh name=/>
+</node>

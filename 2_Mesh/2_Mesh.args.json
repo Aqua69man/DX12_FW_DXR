@@ -1,0 +1,18 @@
+{
+  "FileVersion": 2,
+  "Id": "0f9d6057-e698-4e98-b5d8-b11e03e768c7",
+  "Items": [
+    {
+      "Id": "3afc30ce-1357-4839-8615-315792a2e687",
+      "Command": "E:\\FBX_Models\\SpherePlane_Textured.fbx"
+    },
+    {
+      "Id": "e731caa5-2076-419e-a5f8-dffd9754f51f",
+      "Command": "C:\\Users\\Farik\\Desktop\\DX12_FW_DXR\\2_Mesh\\Data\\ExportScene01.fbx"
+    },
+    {
+      "Id": "1d711984-f787-4ffa-83d2-bae061d828de",
+      "Command": "> test.xml"
+    }
+  ]
+}

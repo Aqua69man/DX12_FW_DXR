@@ -14,18 +14,96 @@
     <Filter Include="FbxLoader">
       <UniqueIdentifier>{2461c38f-55cc-4224-ade7-a6bb49876001}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FbxSceneImport">
+      <UniqueIdentifier>{20002d55-f0e2-4393-abe7-5230a9140be7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FbxSceneImport\Common">
+      <UniqueIdentifier>{17df8690-9c46-4fb3-9164-2f1f4fba3a1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SceneLoader\SceneContext.h">
       <Filter>SceneLoader</Filter>
     </ClInclude>
-    <ClInclude Include="FbxLoader\FbxLoader0.h">
-      <Filter>FbxLoader</Filter>
-    </ClInclude>
     <ClInclude Include="Mesh.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="FbxLoader1.h">
+    <ClInclude Include="FbxLoader\FbxLoader1.h">
+      <Filter>FbxLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\Common\AnimationUtility.h">
+      <Filter>FbxSceneImport\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\Common\Common.h">
+      <Filter>FbxSceneImport\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\Common\GeometryUtility.h">
+      <Filter>FbxSceneImport\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayAnimation.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayCache.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayCamera.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayCommon.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayGenericInfo.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayGlobalSettings.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayHierarchy.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayLight.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayLink.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayLodGroup.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayMarker.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayMaterial.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayMesh.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayNurb.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayPatch.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayPivotsAndLimits.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayPose.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayShape.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplaySkeleton.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayTexture.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxSceneImport\DisplayUserProperties.h">
+      <Filter>FbxSceneImport</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxLoader\FbxHierarchyVisualizer.h">
       <Filter>FbxLoader</Filter>
     </ClInclude>
   </ItemGroup>
@@ -36,8 +114,80 @@
     <ClCompile Include="SceneLoader\SceneContext.cxx">
       <Filter>SceneLoader</Filter>
     </ClCompile>
-    <ClCompile Include="FbxLoader\FbxLoader0.cpp">
-      <Filter>FbxLoader</Filter>
+    <ClCompile Include="FbxSceneImport\Common\AnimationUtility.cxx">
+      <Filter>FbxSceneImport\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\Common\Common.cxx">
+      <Filter>FbxSceneImport\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\Common\GeometryUtility.cxx">
+      <Filter>FbxSceneImport\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayAnimation.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayCache.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayCamera.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayCommon.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayGenericInfo.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayGlobalSettings.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayHierarchy.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayLight.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayLink.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayLodGroup.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayMarker.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayMaterial.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayMesh.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayNurb.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayPatch.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayPivotsAndLimits.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayPose.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayShape.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplaySkeleton.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayTexture.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxSceneImport\DisplayUserProperties.cxx">
+      <Filter>FbxSceneImport</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cxx">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
