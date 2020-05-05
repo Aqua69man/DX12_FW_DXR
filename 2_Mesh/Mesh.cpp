@@ -293,7 +293,7 @@ void Mesh::Update()
 	m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
 	// Update the view matrix.
-	const XMVECTOR eyePosition = XMVectorSet(0, 0, -50, 1);
+	const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
 	const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
 	const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
 	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
@@ -371,29 +371,31 @@ void Mesh::Render()
 //										Main
 // ==============================================================================
 
-
-
+#define USE
+#ifdef USE
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 //int main(int argc, char** argv)
 {
 	std::wstring exeDir = GetExeDirW();
 	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\PepeMocap.fbx";
 	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\cone.fbx";
-	std::string fbxFilePath = "E:/FBX_Models/SpherePlane_Textured.fbx";
+	std::string fbxFilePath = "E:\\FBX_Models\\SpherePlane_Textured_AO_tga.fbx";
+	//std::string fbxFilePath = "E:\\FBX_Models\\_Bistro_v5_1\\BistroInterior.fbx";
 	//std::string fbxFilePath = GetWorkingDirPath() + "\\Data\\ExportScene01.fbx";
 
 	const wchar_t* windowTitle = L"Learning DirectX 12";
 
-	//Mesh game(hInstance, windowTitle, 2400, 1200, false);
-	//game.LoadContent(exeDir, fbxFilePath);
-	//game.Run();
-	//game.UnloadContent();
+	Mesh game(hInstance, windowTitle, 2400, 1200, false);
+	game.LoadContent(exeDir, fbxFilePath);
+	game.Run();
+	game.UnloadContent();
 
 	// Change the following filename to a suitable filename value.
-	PrintFbxHierarchy(fbxFilePath.c_str(), "z_Hierarchy_SpherePlane.xml");
+	//PrintFbxHierarchy(fbxFilePath.c_str(), "z_Hierarchy_SpherePlane.xml");
 
 	//std::vector<VertexPosColor> verts;
 	//std::vector<uint16_t> indices;
 
 	return 0;
 }
+#endif 
