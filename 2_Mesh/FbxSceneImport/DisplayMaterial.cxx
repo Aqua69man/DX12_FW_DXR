@@ -82,6 +82,7 @@ void DisplayMaterial(FbxGeometry* pGeometry)
                     {
                         lFbxProp = lImplementation->GetConstants().FindHierarchical(lEntry.GetSource());
                     }
+
                     if(lFbxProp.IsValid())
                     {
                         if( lFbxProp.GetSrcObjectCount<FbxTexture>() > 0 )

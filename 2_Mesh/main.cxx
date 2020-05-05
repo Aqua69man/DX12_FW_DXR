@@ -37,6 +37,7 @@
 #include "FbxSceneImport/DisplayUserProperties.h"
 #include "FbxSceneImport/DisplayGenericInfo.h"
 
+
 // Local function prototypes.
 void DisplayContent(FbxScene* pScene);
 void DisplayContent(FbxNode* pNode);
@@ -47,9 +48,9 @@ void DisplayMetaData(FbxScene* pScene);
 
 static bool gVerbose = true;
 
-//#define USE
 
-#if USE
+//#define USE_M
+#ifdef USE_M
 int main(int argc, char** argv)
 {
     FbxManager* lSdkManager = NULL;
@@ -128,7 +129,6 @@ int main(int argc, char** argv)
     return 0;
 }
 #endif
-
 
 void DisplayContent(FbxScene* pScene)
 {
@@ -353,4 +353,3 @@ void DisplayMetaData(FbxScene* pScene)
         }
     }
 }
-
