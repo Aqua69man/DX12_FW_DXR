@@ -344,12 +344,10 @@ void Mesh::Render()
 	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_ProjectionMatrix);
 	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
-	// Draw
-#ifdef INDEXED_DRAW_SUPPORTED
-	commandList->DrawIndexedInstanced((UINT)indicies.size(), 1, 0, 0, 0);
-#else
-	commandList->DrawInstanced((UINT)vertices.size(), 1, 0, 0);
-#endif
+
+	commandList->DrawIndexedInstanced((UINT)indicies.size(), 1, 0, 0, 0); // Indexed Draw
+	//commandList->DrawInstanced((UINT)vertices.size(), 1, 0, 0); // Non Indexed Draw
+
 
 	// PRESENT image
 	{
