@@ -14,6 +14,9 @@ using namespace DirectX;
 // ==============================================================================
 //								Global Vars 
 // ==============================================================================
+#define USE_FP32_NORMAL
+#define USE_FP32_UV
+
 std::vector<VertexPosColor> vertices;
 std::vector<uint16_t> indicies;
 
@@ -143,6 +146,12 @@ bool Mesh::LoadContent(std::wstring shaderBlobPath, std::string fbxFilePath)
 		D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+#ifdef USE_FP32_NORMAL
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+#endif
+#ifdef USE_FP32_UV
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+#endif
 		};
 
 		// Create a root signature.
@@ -288,12 +297,12 @@ void Mesh::Update()
 	double totalUpdateTime = Application::GetUpdateTotalTime();
 
 	// Update the model matrix.
-	float angle = static_cast<float>(totalUpdateTime * 90.0);
+	float angle = static_cast<float>(totalUpdateTime * 0.0);
 	const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
 	m_ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
 	// Update the view matrix.
-	const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
+	const XMVECTOR eyePosition = XMVectorSet(0, 0, -5, 1);
 	const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
 	const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
 	m_ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);

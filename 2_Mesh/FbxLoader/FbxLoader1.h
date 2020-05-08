@@ -10,12 +10,15 @@
 #include <DirectXMath.h>
 using namespace DirectX;
 
+#define USE_OPTIMIZAED_INDICES
 
 // Vertex data for a colored cube.
 struct VertexPosColor
 {
 	XMFLOAT3 Position;
 	XMFLOAT3 Color;
+	XMFLOAT3 Normal;
+	XMFLOAT2 UV;
 };
 typedef std::pair<VertexPosColor, uint16_t> viPair;
 
@@ -110,6 +113,17 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 
 			FbxVector4* pVertices = pMesh->GetControlPoints();
 
+			bool hasNormal = pMesh->GetElementNormalCount() > 0;
+			bool hasUV = pMesh->GetElementUVCount() > 0;
+			bool lUnmappedUV;
+			FbxStringList lUVNames;
+			pMesh->GetUVSetNames(lUVNames);
+			const char * lUVName = NULL;
+			if (hasUV && lUVNames.GetCount())
+			{
+				lUVName = lUVNames[0];
+			}
+
 			for (uint16_t j = 0; j < pMesh->GetPolygonCount(); j++)
 			{
 				uint16_t iNumVertices = pMesh->GetPolygonSize(j);
@@ -127,6 +141,23 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 					vertex.Color.y = rand() / float(RAND_MAX);
 					vertex.Color.z = rand() / float(RAND_MAX);
 
+					if (hasNormal) {
+						FbxVector4 lCurrentNormal;
+						pMesh->GetPolygonVertexNormal(j, k, lCurrentNormal);
+						vertex.Normal.x = static_cast<float>(lCurrentNormal[0]);
+						vertex.Normal.y = static_cast<float>(lCurrentNormal[1]);
+						vertex.Normal.z = static_cast<float>(lCurrentNormal[2]);
+					}
+
+					if (hasUV)
+					{
+						FbxVector2 lCurrentUV;
+						pMesh->GetPolygonVertexUV(j, k, lUVName, lCurrentUV, lUnmappedUV);
+						vertex.UV.x = static_cast<float>(lCurrentUV[0]);
+						vertex.UV.y = static_cast<float>(lCurrentUV[1]);
+					}
+
+#ifdef USE_OPTIMIZAED_INDICES
 					std::set<viPair>::iterator it = setVertInd.find(std::make_pair(vertex, 0/*this value doesn't matter*/));
 					if (it != setVertInd.end()) pOutIndices->push_back(it->second);
 					else
@@ -134,11 +165,15 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 						setVertInd.insert(std::make_pair(vertex, index));
 						pOutIndices->push_back(index++);
 					}
-
+#else 
+					pOutVertices->push_back(vertex);
+					pOutIndices->push_back(index++);
+#endif
 				}
 			}
 		}
 
+#ifdef USE_OPTIMIZAED_INDICES
 		// Notice that the vertices in the set are not sorted by the index
 		// so you'll have to rearrange them like this:
 		pOutVertices->resize(setVertInd.size());
@@ -148,6 +183,8 @@ bool LoadFBX(const char * fbxFilePath, std::vector<VertexPosColor> * pOutVertice
 
 			pOutVertices->at(i) = v;
 		}
+#endif 
+
 	}
 	return true;
 }
